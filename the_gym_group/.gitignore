@@ -1,0 +1,48 @@
+# Cache folders
+cache/
+.cache/
+**/cache/
+**/.cache/
+tmp/
+temp/
+.tmp/
+.temp/
+
+# Common application cache directories
+node_modules/
+.npm/
+.yarn/
+pip-cache/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.coverage
+.nyc_output/
+.sass-cache/
+.gradle/
+build/
+dist/
+target/
+
+# IDE and editor cache
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS cache
+.DS_Store
+Thumbs.db
+
+# Archive files
+*.zip
+*.tar.gz
+*.tar.bz2
+*.bz2
+*.gz
+*.rar
+*.7z
+*.tar
+*.tgz
