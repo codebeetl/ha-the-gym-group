@@ -1,0 +1,52 @@
+{
+    "config": {
+        "step": {
+            "user": {
+                "title": "The Gym Group",
+                "description": "Please enter your login credentials for The Gym Group.",
+                "data": {
+                    "username": "Username (Email)",
+                    "password": "Password"
+                }
+            }
+        },
+        "error": {
+            "cannot_connect": "Failed to connect to The Gym Group API. Please check your network connection and try again.",
+            "invalid_auth": "Invalid username or password. Please check your credentials and try again.",
+            "unknown": "An unknown error occurred. Please check the logs."
+        },
+        "abort": {
+            "already_configured": "This account is already configured."
+        }
+    },
+    "options": {
+        "step": {
+            "init": {
+                "title": "Update The Gym Group Credentials",
+                "description": "Enter the new credentials for your account. The existing username is shown as a default.",
+                "data": {
+                    "username": "New Username (Email)",
+                    "password": "New Password"
+                }
+            }
+        }
+    },
+    "entity": {
+        "sensor": {
+            "busyness": {
+                "name": "Busyness"
+            }
+        }
+    },
+    "reauth": {
+        "step": {
+            "user": {
+                "title": "Re-authenticate",
+                "description": "Your credentials for The Gym Group are no longer valid. Please re-enter them.",
+                "data": {
+                    "password": "Password"
+                }
+            }
+        }
+    }
+}

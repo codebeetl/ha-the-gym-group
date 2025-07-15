@@ -1,0 +1,13 @@
+{
+    "domain": "the_gym_group",
+    "name": "The Gym Group",
+    "config_flow": true,
+    "documentation": "https://github.com/codebeetl/ha-the-gym-group",
+    "issue_tracker": "https://github.com/codebeetl/ha-the-gym-group/issues",
+    "codeowners": [
+        "@codebeetl"
+    ],
+    "requirements": [],
+    "version": "0.0.2",
+    "iot_class": "cloud_polling"
+}
