@@ -31,21 +31,36 @@
             }
         }
     },
+    "device_automation": {
+        "trigger_type": {
+            "capacity_above": "Capacity goes above",
+            "capacity_below": "Capacity goes below",
+            "status_open": "Status changes to open",
+            "status_closed": "Status changes to closed"
+        },
+        "trigger_subtitle": {
+            "capacity_above": "When the number of people in the gym goes above a set value.",
+            "capacity_below": "When the number of people in the gym goes below a set value."
+        }
+    },
     "entity": {
         "sensor": {
             "busyness": {
                 "name": "Gym Population"
+            },
+            "status": {
+                "name": "Status"
             }
-        }
-    },
-    "reauth": {
-        "step": {
-            "user": {
-                "title": "Re-authenticate",
-                "description": "Your credentials for The Gym Group are no longer valid. Please re-enter them.",
-                "data": {
-                    "username": "New Username (Email)",
-                    "password": "Password (PIN)"
+        },
+        "reauth": {
+            "step": {
+                "user": {
+                    "title": "Re-authenticate",
+                    "description": "Your credentials for The Gym Group are no longer valid. Please re-enter them.",
+                    "data": {
+                        "username": "New Username (Email)",
+                        "password": "Password (PIN)"
+                    }
                 }
             }
         }
