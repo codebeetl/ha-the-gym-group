@@ -3,10 +3,10 @@
         "step": {
             "user": {
                 "title": "The Gym Group",
-                "description": "Please enter your login credentials for The Gym Group.",
+                "description": "Please enter your login credentials for The Gym Group",
                 "data": {
                     "username": "Username (Email)",
-                    "password": "Password"
+                    "password": "Password (PIN)"
                 }
             }
         },
@@ -23,10 +23,10 @@
         "step": {
             "init": {
                 "title": "Update The Gym Group Credentials",
-                "description": "Enter the new credentials for your account. The existing username is shown as a default.",
+                "description": "Enter the new credentials for your account. The existing username is shown as a default",
                 "data": {
                     "username": "New Username (Email)",
-                    "password": "New Password"
+                    "password": "New Password (PIN)"
                 }
             }
         }
@@ -34,7 +34,7 @@
     "entity": {
         "sensor": {
             "busyness": {
-                "name": "Busyness"
+                "name": "Gym Population"
             }
         }
     },
@@ -44,7 +44,8 @@
                 "title": "Re-authenticate",
                 "description": "Your credentials for The Gym Group are no longer valid. Please re-enter them.",
                 "data": {
-                    "password": "Password"
+                    "username": "New Username (Email)",
+                    "password": "Password (PIN)"
                 }
             }
         }
