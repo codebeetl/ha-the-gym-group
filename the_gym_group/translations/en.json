@@ -31,6 +31,18 @@
             }
         }
     },
+    "reauth": {
+        "step": {
+            "user": {
+                "title": "Re-authenticate",
+                "description": "Your credentials for The Gym Group are no longer valid. Please re-enter them.",
+                "data": {
+                    "username": "New Username (Email)",
+                    "password": "Password (PIN)"
+                }
+            }
+        }
+    },
     "device_automation": {
         "trigger_type": {
             "capacity_above": "Capacity goes above",
@@ -50,18 +62,6 @@
             },
             "status": {
                 "name": "Status"
-            }
-        },
-        "reauth": {
-            "step": {
-                "user": {
-                    "title": "Re-authenticate",
-                    "description": "Your credentials for The Gym Group are no longer valid. Please re-enter them.",
-                    "data": {
-                        "username": "New Username (Email)",
-                        "password": "Password (PIN)"
-                    }
-                }
             }
         }
     }

@@ -94,3 +94,42 @@ class TheGymGroupBusynessSensor(
     def icon(self) -> str:
         """Return the icon for the sensor."""
         return "mdi:weight-lifter"
+
+
+class TheGymGroupStatusSensor(
+    CoordinatorEntity[TheGymGroupDataUpdateCoordinator], SensorEntity
+):
+    """Representation of a The Gym Group Status Sensor."""
+
+    _attr_icon = "mdi:door"
+    _attr_has_entity_name = True
+    _attr_translation_key = "status"
+
+    def __init__(
+        self, coordinator: TheGymGroupDataUpdateCoordinator, config_entry: ConfigEntry
+    ) -> None:
+        """Initialize the sensor."""
+        super().__init__(coordinator)
+        self.config_entry: ConfigEntry = config_entry
+        self._attr_unique_id = (
+            f"{coordinator.data.get('gymLocationId', config_entry.entry_id)}_status"
+        )
+
+    @property
+    def native_value(self) -> str | None:
+        """Return the state of the sensor (current status)."""
+        return self.coordinator.data.get("status")
+
+    @property
+    def device_info(self) -> DeviceInfo:
+        """Return device information to link to the same device."""
+        return DeviceInfo(
+            identifiers={
+                (
+                    DOMAIN,
+                    self.coordinator.data.get(
+                        "gymLocationId", self.config_entry.entry_id
+                    ),
+                )
+            }
+        )

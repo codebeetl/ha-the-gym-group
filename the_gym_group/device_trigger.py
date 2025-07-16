@@ -46,7 +46,7 @@ async def async_get_triggers(
     # Find all entities associated with the device
     for entry in er.async_entries_for_device(registry, device_id):
         # Add numeric triggers for the busyness sensor
-        if entry.translation_key == TheGymGroupBusynessSensor.translation_key:
+        if entry.translation_key == TheGymGroupBusynessSensor._attr_translation_key:  # noqa: SLF001
             triggers.extend(
                 [
                     {
@@ -66,7 +66,7 @@ async def async_get_triggers(
                 ]
             )
         # Add state triggers for the status sensor
-        elif entry.translation_key == TheGymGroupStatusSensor.translation_key:
+        elif entry.translation_key == TheGymGroupStatusSensor._attr_translation_key:  # noqa: SLF001
             triggers.extend(
                 [
                     {
