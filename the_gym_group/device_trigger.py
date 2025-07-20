@@ -19,6 +19,7 @@ from homeassistant.const import (
 )
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import config_validation as cv, entity_registry as er
+from homeassistant.helpers.trigger import TriggerActionType, TriggerInfo
 from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
@@ -92,8 +93,8 @@ async def async_get_triggers(
 async def async_attach_trigger(
     hass: HomeAssistant,
     config: ConfigType,
-    action: CALLBACK_TYPE,
-    automation_info: dict[str, Any],
+    action: TriggerActionType,
+    trigger_info: TriggerInfo,
 ) -> CALLBACK_TYPE:
     """Attach a trigger."""
     trigger_type = config[CONF_TYPE]
@@ -107,9 +108,9 @@ async def async_attach_trigger(
         else:
             numeric_state_config[numeric_state.CONF_BELOW] = config[CONF_BELOW]
 
-        numeric_state_config = numeric_state.TRIGGER_SCHEMA(numeric_state_config)
+        numeric_state_config = numeric_state._TRIGGER_SCHEMA(numeric_state_config)  # noqa: SLF001
         return await numeric_state.async_attach_trigger(
-            hass, numeric_state_config, action, automation_info, platform_type="device"
+            hass, numeric_state_config, action, trigger_info, platform_type="device"
         )
 
     # Handle status triggers
@@ -121,7 +122,7 @@ async def async_attach_trigger(
     else:  # status_closed
         state_config[state.CONF_TO] = "closed"
 
-    state_config = state.TRIGGER_SCHEMA(state_config)
+    state_config = state.TRIGGER_STATE_SCHEMA(state_config)
     return await state.async_attach_trigger(
-        hass, state_config, action, automation_info, platform_type="device"
+        hass, state_config, action, trigger_info, platform_type="device"
     )
