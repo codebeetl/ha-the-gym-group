@@ -82,7 +82,7 @@ class TheGymGroupBusynessSensor(
             },
             name=self.coordinator.data.get("gymLocationName", "The Gym Group"),
             manufacturer="The Gym Group",
-            model="Gym Location",
+            model="Unofficial integration",
         )
 
     @property

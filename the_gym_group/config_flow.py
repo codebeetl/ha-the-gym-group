@@ -30,7 +30,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         config_entry: config_entries.ConfigEntry,
     ) -> TheGymGroupOptionsFlow:
         """Get the options flow for this handler."""
-        return TheGymGroupOptionsFlow(config_entry)
+        return TheGymGroupOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -112,9 +112,9 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
     """Handle an options flow for The Gym Group to allow reconfiguring credentials."""
 
-    def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
-        """Initialize options flow."""
-        self.config_entry = config_entry
+    # def __init__(self, config_entry: config_entries.ConfigEntry) -> None:
+    #     """Initialize options flow."""
+    #     self.config_entry = config_entry
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
