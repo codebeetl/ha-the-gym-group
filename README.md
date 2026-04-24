@@ -71,6 +71,33 @@ and re-enter the username and password. If the new credentials belong to a
 different Gym Group account, the integration will repoint the device at that
 account.
 
+### Advanced configuration
+
+The Gym Group's mobile-app backend (Netpulse) cares about the headers the
+client sends. The integration ships with values that mirror the official
+Android app at the time of release, but if Gym Group bumps their app version
+the API can start returning 401/403/4xx until the new version's headers are
+sent.
+
+To handle that without releasing a new build of the integration, the setup
+form (and the **Configure** options form) exposes the following fields with
+sensible defaults:
+
+| Field | Default | What it does |
+| --- | --- | --- |
+| **API host** | `thegymgroup.netpulse.com` | The Netpulse host the requests go to. Drives the URL **and** the HTTP `Host` header. |
+| **User-Agent header** | `okhttp/3.12.3` | Sent as `User-Agent`. The official app uses the OkHttp default. |
+| **Application name** | `The Gym Group` | Embedded in the composite `x-np-user-agent` header. |
+| **Application version** | `6.10` | Sent as both `x-np-app-version` and the `applicationVersion=` segment of `x-np-user-agent`. |
+| **Application version code** | `38` | The numeric build code, embedded in `x-np-user-agent`. |
+
+Most users should leave these alone. If the integration starts failing all
+requests with 4xx after a Gym Group app update, install the latest official
+Android app, look up its version (Play Store → app → "About") and version
+code, and update the two `Application version` fields via **Configure**. The
+integration will re-validate against the API as part of saving, so a typo
+that breaks login is caught immediately rather than at the next refresh.
+
 ## Entities provided
 
 One device per configured account, with two sensors:

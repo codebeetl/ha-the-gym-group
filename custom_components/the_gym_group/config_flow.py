@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+from collections.abc import Mapping
 from typing import Any
 
 import voluptuous as vol
@@ -14,21 +15,106 @@ from homeassistant.core import HomeAssistant, callback
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import CannotConnect, InvalidAuth, TheGymGroupApiClient
-from .const import DOMAIN
+from .const import (
+    CONF_APPLICATION_NAME,
+    CONF_APPLICATION_VERSION,
+    CONF_APPLICATION_VERSION_CODE,
+    CONF_HOST,
+    CONF_USER_AGENT,
+    DEFAULT_APPLICATION_NAME,
+    DEFAULT_APPLICATION_VERSION,
+    DEFAULT_APPLICATION_VERSION_CODE,
+    DEFAULT_HOST,
+    DEFAULT_USER_AGENT,
+    DOMAIN,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
 
+def _credentials_schema(
+    defaults: Mapping[str, Any],
+    *,
+    include_username: bool = True,
+) -> vol.Schema:
+    """Build the schema used by both the user and options flows.
+
+    ``defaults`` is consulted for pre-fill values for every field. Falls back
+    to the module-level DEFAULT_* constants when a key is missing.
+    """
+    schema: dict[Any, Any] = {}
+
+    if include_username:
+        username_default = defaults.get(CONF_USERNAME)
+        if username_default is not None:
+            schema[
+                vol.Required(CONF_USERNAME, default=username_default)
+            ] = vol.Email()
+        else:
+            schema[vol.Required(CONF_USERNAME)] = vol.Email()
+
+    schema[vol.Required(CONF_PASSWORD)] = str
+
+    schema[
+        vol.Optional(CONF_HOST, default=defaults.get(CONF_HOST, DEFAULT_HOST))
+    ] = str
+    schema[
+        vol.Optional(
+            CONF_USER_AGENT, default=defaults.get(CONF_USER_AGENT, DEFAULT_USER_AGENT)
+        )
+    ] = str
+    schema[
+        vol.Optional(
+            CONF_APPLICATION_NAME,
+            default=defaults.get(CONF_APPLICATION_NAME, DEFAULT_APPLICATION_NAME),
+        )
+    ] = str
+    schema[
+        vol.Optional(
+            CONF_APPLICATION_VERSION,
+            default=defaults.get(CONF_APPLICATION_VERSION, DEFAULT_APPLICATION_VERSION),
+        )
+    ] = str
+    schema[
+        vol.Optional(
+            CONF_APPLICATION_VERSION_CODE,
+            default=defaults.get(
+                CONF_APPLICATION_VERSION_CODE, DEFAULT_APPLICATION_VERSION_CODE
+            ),
+        )
+    ] = str
+
+    return vol.Schema(schema)
+
+
 async def _try_login(
-    hass: HomeAssistant, username: str, password: str
+    hass: HomeAssistant, user_input: Mapping[str, Any]
 ) -> TheGymGroupApiClient:
     """Attempt to log in and return the client on success.
+
+    ``user_input`` must contain at least username/password; the advanced
+    transport / app-identity fields are optional and fall back to defaults.
 
     Raises:
         InvalidAuth: credentials rejected.
         CannotConnect: transport / server error.
     """
-    client = TheGymGroupApiClient(username, password, async_get_clientsession(hass))
+    client = TheGymGroupApiClient(
+        user_input[CONF_USERNAME],
+        user_input[CONF_PASSWORD],
+        async_get_clientsession(hass),
+        host=user_input.get(CONF_HOST, DEFAULT_HOST),
+        user_agent=user_input.get(CONF_USER_AGENT, DEFAULT_USER_AGENT),
+        application_name=user_input.get(
+            CONF_APPLICATION_NAME, DEFAULT_APPLICATION_NAME
+        ),
+        application_version=user_input.get(
+            CONF_APPLICATION_VERSION, DEFAULT_APPLICATION_VERSION
+        ),
+        application_version_code=user_input.get(
+            CONF_APPLICATION_VERSION_CODE, DEFAULT_APPLICATION_VERSION_CODE
+        ),
+    )
     await client.async_login()
     return client
 
@@ -54,11 +140,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             try:
-                client = await _try_login(
-                    self.hass,
-                    user_input[CONF_USERNAME],
-                    user_input[CONF_PASSWORD],
-                )
+                client = await _try_login(self.hass, user_input)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -75,12 +157,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="user",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(CONF_USERNAME): vol.Email(),
-                    vol.Required(CONF_PASSWORD): str,
-                }
-            ),
+            data_schema=_credentials_schema(user_input or {}),
             errors=errors,
         )
 
@@ -90,7 +167,8 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Handle re-authentication.
 
         Single-step reauth: HA routes both the initial display (no user_input)
-        and the form submission back to this method via step_id="reauth".
+        and the form submission back to this method via step_id="reauth". Only
+        the password is collected — the advanced fields stay as configured.
         """
         errors: dict[str, str] = {}
         try:
@@ -100,8 +178,11 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         if user_input is not None:
             password = user_input[CONF_PASSWORD]
+            # Merge with the entry's existing data so the advanced fields
+            # carry through into the login attempt.
+            login_input = {**entry.data, CONF_PASSWORD: password}
             try:
-                await _try_login(self.hass, entry.data[CONF_USERNAME], password)
+                await _try_login(self.hass, login_input)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -132,21 +213,21 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
-    """Options flow — allows changing the stored credentials."""
+    """Options flow — allows changing stored credentials and transport fields."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage the options, which in this case is re-validating credentials."""
+        """Manage the options.
+
+        Re-validates credentials (which also exercises the advanced fields, so
+        a bad host / user-agent is caught here rather than at the next refresh).
+        """
         errors: dict[str, str] = {}
 
         if user_input is not None:
             try:
-                client = await _try_login(
-                    self.hass,
-                    user_input[CONF_USERNAME],
-                    user_input[CONF_PASSWORD],
-                )
+                client = await _try_login(self.hass, user_input)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -155,9 +236,7 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                 _LOGGER.exception("Unexpected exception during reconfigure")
                 errors["base"] = "unknown"
             else:
-                new_data = dict(self.config_entry.data)
-                new_data[CONF_USERNAME] = user_input[CONF_USERNAME]
-                new_data[CONF_PASSWORD] = user_input[CONF_PASSWORD]
+                new_data = {**self.config_entry.data, **user_input}
 
                 # If the username now maps to a different account, keep the
                 # unique_id in sync so HA can still detect duplicates.
@@ -171,16 +250,12 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                 # The update_listener in __init__.py will reload the entry.
                 return self.async_create_entry(title="", data={})
 
+        # Pre-fill from the current entry, with the in-flight user_input
+        # taking precedence so users see what they just typed on validation
+        # errors.
+        defaults = {**self.config_entry.data, **(user_input or {})}
         return self.async_show_form(
             step_id="init",
-            data_schema=vol.Schema(
-                {
-                    vol.Required(
-                        CONF_USERNAME,
-                        default=self.config_entry.data.get(CONF_USERNAME),
-                    ): vol.Email(),
-                    vol.Required(CONF_PASSWORD): str,
-                }
-            ),
+            data_schema=_credentials_schema(defaults),
             errors=errors,
         )

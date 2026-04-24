@@ -8,7 +8,16 @@ from typing import Any, cast
 
 import aiohttp
 
-from .const import BASE_HEADERS, BUSYNESS_URL_TEMPLATE, LOGIN_URL
+from .const import (
+    DEFAULT_APPLICATION_NAME,
+    DEFAULT_APPLICATION_VERSION,
+    DEFAULT_APPLICATION_VERSION_CODE,
+    DEFAULT_HOST,
+    DEFAULT_USER_AGENT,
+    build_busyness_url,
+    build_headers,
+    build_login_url,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -37,6 +46,12 @@ class TheGymGroupApiClient:
         password: str,
         session: aiohttp.ClientSession,
         user_id: str = "",
+        *,
+        host: str = DEFAULT_HOST,
+        user_agent: str = DEFAULT_USER_AGENT,
+        application_name: str = DEFAULT_APPLICATION_NAME,
+        application_version: str = DEFAULT_APPLICATION_VERSION,
+        application_version_code: str = DEFAULT_APPLICATION_VERSION_CODE,
     ) -> None:
         """Initialize the API client.
 
@@ -45,11 +60,27 @@ class TheGymGroupApiClient:
             password: The user's password.
             session: An aiohttp session that will manage cookies.
             user_id: Optional user ID to avoid re-login if already known.
+            host: The Netpulse host serving the Gym Group API.
+            user_agent: The HTTP ``User-Agent`` header value.
+            application_name: The app name advertised in ``x-np-user-agent``.
+            application_version: The app version advertised in
+                ``x-np-app-version`` and ``x-np-user-agent``.
+            application_version_code: The numeric app build code advertised in
+                ``x-np-user-agent``.
         """
         self._username = username
         self._password = password
         self._session = session
         self._user_id = user_id
+        self._host = host
+        self._headers: dict[str, str] = build_headers(
+            host=host,
+            user_agent=user_agent,
+            application_name=application_name,
+            application_version=application_version,
+            application_version_code=application_version_code,
+        )
+        self._login_url = build_login_url(host)
 
     @property
     def user_id(self) -> str:
@@ -63,13 +94,16 @@ class TheGymGroupApiClient:
             InvalidAuth: The server rejected the credentials (401/403).
             CannotConnect: The login failed for transport or other reasons.
         """
-        login_headers: dict[str, str] = BASE_HEADERS.copy()
+        login_headers: dict[str, str] = self._headers.copy()
         login_headers["content-type"] = _FORM_CONTENT_TYPE
         creds: dict[str, str] = {"username": self._username, "password": self._password}
 
         try:
             async with self._session.post(
-                LOGIN_URL, data=creds, headers=login_headers, timeout=_REQUEST_TIMEOUT
+                self._login_url,
+                data=creds,
+                headers=login_headers,
+                timeout=_REQUEST_TIMEOUT,
             ) as response:
                 if response.status in (401, 403):
                     _LOGGER.warning(
@@ -116,7 +150,7 @@ class TheGymGroupApiClient:
             CannotConnect: API returned a non-auth error.
         """
         await self._ensure_logged_in()
-        url: str = BUSYNESS_URL_TEMPLATE.format(user_id=self._user_id)
+        url: str = build_busyness_url(self._user_id, self._host)
 
         data = await self._do_get(url)
         if data is not None:
@@ -127,7 +161,7 @@ class TheGymGroupApiClient:
         await self.async_login()
 
         # Rebuild the URL in case user_id changed on re-login.
-        url = BUSYNESS_URL_TEMPLATE.format(user_id=self._user_id)
+        url = build_busyness_url(self._user_id, self._host)
         data = await self._do_get(url)
         if data is None:
             # Credentials no longer valid after a fresh login — bubble up.
@@ -142,7 +176,7 @@ class TheGymGroupApiClient:
         """
         try:
             async with self._session.get(
-                url, headers=BASE_HEADERS, timeout=_REQUEST_TIMEOUT
+                url, headers=self._headers, timeout=_REQUEST_TIMEOUT
             ) as response:
                 if response.status in (401, 403):
                     return None

@@ -184,7 +184,11 @@ async def test_options_flow_success(hass: HomeAssistant) -> None:
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
 
-    new_config = {CONF_USERNAME: "new@email.com", CONF_PASSWORD: "new_password"}
+    new_config = {
+        **MOCK_CONFIG,
+        CONF_USERNAME: "new@email.com",
+        CONF_PASSWORD: "new_password",
+    }
     with (
         patch(
             "custom_components.the_gym_group.api.TheGymGroupApiClient.async_login",
@@ -217,6 +221,7 @@ async def test_options_flow_invalid_auth(hass: HomeAssistant) -> None:
         result2 = await hass.config_entries.options.async_configure(
             result["flow_id"],
             user_input={
+                **MOCK_CONFIG,
                 CONF_USERNAME: "new@email.com",
                 CONF_PASSWORD: "wrong_password",
             },

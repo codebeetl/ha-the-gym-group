@@ -3,10 +3,15 @@
         "step": {
             "user": {
                 "title": "The Gym Group",
-                "description": "Please enter your login credentials for The Gym Group",
+                "description": "Please enter your login credentials for The Gym Group. The advanced fields below only need changing if the official app version has been bumped and the API starts rejecting requests.",
                 "data": {
                     "username": "Username (Email)",
-                    "password": "Password (PIN)"
+                    "password": "Password (PIN)",
+                    "host": "API host",
+                    "user_agent": "User-Agent header",
+                    "application_name": "Application name",
+                    "application_version": "Application version",
+                    "application_version_code": "Application version code"
                 }
             },
             "reauth": {
@@ -31,11 +36,16 @@
     "options": {
         "step": {
             "init": {
-                "title": "Update The Gym Group Credentials",
-                "description": "Enter the new credentials for your account. The existing username is shown as a default.",
+                "title": "Update The Gym Group Configuration",
+                "description": "Update your stored credentials and (optionally) the transport / app-identity fields used to talk to the API.",
                 "data": {
-                    "username": "New Username (Email)",
-                    "password": "New Password (PIN)"
+                    "username": "Username (Email)",
+                    "password": "Password (PIN)",
+                    "host": "API host",
+                    "user_agent": "User-Agent header",
+                    "application_name": "Application name",
+                    "application_version": "Application version",
+                    "application_version_code": "Application version code"
                 }
             }
         },
