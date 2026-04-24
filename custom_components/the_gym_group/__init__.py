@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import aiohttp
-
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
@@ -18,7 +16,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Set up The Gym Group from a config entry."""
     hass.data.setdefault(DOMAIN, {})
 
-    session: aiohttp.ClientSession = async_get_clientsession(hass)
+    session = async_get_clientsession(hass)
 
     api_client = TheGymGroupApiClient(
         entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD], session
