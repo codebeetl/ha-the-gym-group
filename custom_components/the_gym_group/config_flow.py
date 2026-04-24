@@ -168,7 +168,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         Single-step reauth: HA routes both the initial display (no user_input)
         and the form submission back to this method via step_id="reauth". Only
-        the password is collected — the advanced fields stay as configured.
+        the password is collected - the advanced fields stay as configured.
         """
         errors: dict[str, str] = {}
         try:
@@ -213,7 +213,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
 
 class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
-    """Options flow — allows changing stored credentials and transport fields."""
+    """Options flow - allows changing stored credentials and transport fields."""
 
     async def async_step_init(
         self, user_input: dict[str, Any] | None = None

@@ -156,7 +156,7 @@ class TheGymGroupApiClient:
         if data is not None:
             return data
 
-        # Likely expired session — re-login and retry once.
+        # Likely expired session - re-login and retry once.
         _LOGGER.debug("Busyness fetch returned auth error; re-logging in")
         await self.async_login()
 
@@ -164,7 +164,7 @@ class TheGymGroupApiClient:
         url = build_busyness_url(self._user_id, self._host)
         data = await self._do_get(url)
         if data is None:
-            # Credentials no longer valid after a fresh login — bubble up.
+            # Credentials no longer valid after a fresh login - bubble up.
             raise InvalidAuth("Authentication still failing after re-login")
         return data
 

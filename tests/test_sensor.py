@@ -25,7 +25,7 @@ async def test_sensor_entities(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    # Look up entities by unique_id rather than a guessed entity_id slug — the
+    # Look up entities by unique_id rather than a guessed entity_id slug - the
     # slug depends on device_name + translated entity_name and changes across
     # HA versions.
     busyness_entry = entity_registry.async_get_entity_id(
