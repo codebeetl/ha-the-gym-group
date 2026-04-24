@@ -56,11 +56,8 @@ class TheGymGroupApiClient:
         """Return the user ID (empty string if not logged in)."""
         return self._user_id
 
-    async def async_login(self) -> bool:
+    async def async_login(self) -> None:
         """Perform login to populate the session's cookie jar and get the user ID.
-
-        Returns:
-            True if login was successful.
 
         Raises:
             InvalidAuth: The server rejected the credentials (401/403).
@@ -91,7 +88,6 @@ class TheGymGroupApiClient:
 
                 self._user_id = user_id
                 _LOGGER.debug("Login successful, session cookie stored")
-                return True
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             _LOGGER.error("Error during login request: %s", err)
             raise CannotConnect(f"Login transport error: {err}") from err
@@ -145,7 +141,9 @@ class TheGymGroupApiClient:
             CannotConnect: non-auth HTTP or transport errors.
         """
         try:
-            async with self._session.get(url, headers=BASE_HEADERS, timeout=_REQUEST_TIMEOUT) as response:
+            async with self._session.get(
+                url, headers=BASE_HEADERS, timeout=_REQUEST_TIMEOUT
+            ) as response:
                 if response.status in (401, 403):
                     return None
                 if response.status != 200:
