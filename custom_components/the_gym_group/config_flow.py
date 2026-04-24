@@ -118,6 +118,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="reauth",
             data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            description_placeholders={"username": entry.data[CONF_USERNAME]},
             errors=errors,
         )
 
@@ -177,7 +178,7 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                     vol.Required(
                         CONF_USERNAME,
                         default=self.config_entry.data.get(CONF_USERNAME),
-                    ): str,
+                    ): vol.Email(),
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),

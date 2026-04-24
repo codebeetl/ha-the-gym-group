@@ -11,7 +11,7 @@
             },
             "reauth": {
                 "title": "Re-authenticate",
-                "description": "Your credentials for The Gym Group are no longer valid. Please re-enter your password.",
+                "description": "Your credentials for {username} are no longer valid. Please re-enter your password.",
                 "data": {
                     "password": "Password (PIN)"
                 }
