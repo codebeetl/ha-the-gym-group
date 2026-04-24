@@ -114,13 +114,14 @@ class TheGymGroupBusynessSensor(_TheGymGroupBaseSensor):
         if isinstance(historical, list):
             historical = historical[-HISTORICAL_ATTR_LIMIT:]
 
-        return {
+        raw = {
             "gym_location_id": data.get("gymLocationId"),
             "gym_location_name": data.get("gymLocationName"),
             "current_percentage": data.get("currentPercentage"),
             "historical": historical,
             "status": data.get("status"),
         }
+        return {k: v for k, v in raw.items() if v is not None}
 
 
 class TheGymGroupStatusSensor(_TheGymGroupBaseSensor):

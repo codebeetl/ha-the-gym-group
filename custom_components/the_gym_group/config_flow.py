@@ -122,7 +122,8 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         """Return the config entry being reauthenticated."""
         entry_id = self.context["entry_id"]
         entry = self.hass.config_entries.async_get_entry(entry_id)
-        assert entry is not None, f"Reauth entry {entry_id} not found"
+        if entry is None:
+            raise ValueError(f"Reauth entry {entry_id} not found")
         return entry
 
 

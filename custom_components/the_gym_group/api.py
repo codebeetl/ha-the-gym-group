@@ -12,6 +12,7 @@ from .const import BASE_HEADERS, BUSYNESS_URL_TEMPLATE, LOGIN_URL
 _LOGGER = logging.getLogger(__name__)
 
 _FORM_CONTENT_TYPE = "application/x-www-form-urlencoded"
+_REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 
 
 class TheGymGroupApiClientError(Exception):
@@ -70,7 +71,7 @@ class TheGymGroupApiClient:
 
         try:
             async with self._session.post(
-                LOGIN_URL, data=creds, headers=login_headers
+                LOGIN_URL, data=creds, headers=login_headers, timeout=_REQUEST_TIMEOUT
             ) as response:
                 if response.status in (401, 403):
                     _LOGGER.warning(
@@ -143,7 +144,7 @@ class TheGymGroupApiClient:
             CannotConnect: non-auth HTTP or transport errors.
         """
         try:
-            async with self._session.get(url, headers=BASE_HEADERS) as response:
+            async with self._session.get(url, headers=BASE_HEADERS, timeout=_REQUEST_TIMEOUT) as response:
                 if response.status in (401, 403):
                     return None
                 if response.status != 200:
