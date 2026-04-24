@@ -4,11 +4,15 @@ from __future__ import annotations
 
 from typing import Any
 
+from homeassistant.components.diagnostics import async_redact_data
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import TheGymGroupDataUpdateCoordinator
+
+TO_REDACT = {CONF_USERNAME, CONF_PASSWORD}
 
 
 async def async_get_config_entry_diagnostics(
@@ -17,11 +21,7 @@ async def async_get_config_entry_diagnostics(
     """Return diagnostics for a config entry."""
     coordinator: TheGymGroupDataUpdateCoordinator = hass.data[DOMAIN][entry.entry_id]
 
-    # Redact sensitive information from the config entry data
-    redacted_config: dict[str, Any] = dict(entry.data)
-    redacted_config.pop("password", None)
-
     return {
-        "config_entry": redacted_config,
+        "config_entry": async_redact_data(entry.as_dict(), TO_REDACT),
         "coordinator_data": coordinator.data,
     }

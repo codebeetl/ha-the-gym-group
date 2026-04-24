@@ -25,9 +25,14 @@ async def test_sensor_entities(
         await hass.config_entries.async_setup(entry.entry_id)
         await hass.async_block_till_done()
 
-    # Test Busyness Sensor
-    busyness_id = "sensor.test_gym_busyness"
-    busyness_state = hass.states.get(busyness_id)
+    # Look up entities by unique_id rather than a guessed entity_id slug — the
+    # slug depends on device_name + translated entity_name and changes across
+    # HA versions.
+    busyness_entry = entity_registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{MOCK_GYM_ID}_busyness"
+    )
+    assert busyness_entry is not None
+    busyness_state = hass.states.get(busyness_entry)
     assert busyness_state is not None
     assert busyness_state.state == str(MOCK_API_DATA["currentCapacity"])
     assert (
@@ -35,16 +40,10 @@ async def test_sensor_entities(
         == MOCK_API_DATA["currentPercentage"]
     )
 
-    busyness_entry = entity_registry.async_get(busyness_id)
-    assert busyness_entry is not None
-    assert busyness_entry.unique_id == f"{MOCK_GYM_ID}_busyness"
-
-    # Test Status Sensor
-    status_id = "sensor.test_gym_status"
-    status_state = hass.states.get(status_id)
+    status_entry = entity_registry.async_get_entity_id(
+        "sensor", DOMAIN, f"{MOCK_GYM_ID}_status"
+    )
+    assert status_entry is not None
+    status_state = hass.states.get(status_entry)
     assert status_state is not None
     assert status_state.state == MOCK_API_DATA["status"]
-
-    status_entry = entity_registry.async_get(status_id)
-    assert status_entry is not None
-    assert status_entry.unique_id == f"{MOCK_GYM_ID}_status"

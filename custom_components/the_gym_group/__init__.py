@@ -20,14 +20,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     session: aiohttp.ClientSession = async_get_clientsession(hass)
 
-    api_client: TheGymGroupApiClient = TheGymGroupApiClient(
+    api_client = TheGymGroupApiClient(
         entry.data[CONF_USERNAME], entry.data[CONF_PASSWORD], session
     )
 
-    coordinator: TheGymGroupDataUpdateCoordinator = TheGymGroupDataUpdateCoordinator(
-        hass, api_client=api_client
-    )
-
+    coordinator = TheGymGroupDataUpdateCoordinator(hass, api_client=api_client)
     await coordinator.async_config_entry_first_refresh()
 
     hass.data[DOMAIN][entry.entry_id] = coordinator
@@ -40,10 +37,13 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
 
 async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Handle options update."""
+    """Handle options update by reloading the entry."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     """Unload a config entry."""
-    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
+    if unload_ok:
+        hass.data[DOMAIN].pop(entry.entry_id, None)
+    return unload_ok

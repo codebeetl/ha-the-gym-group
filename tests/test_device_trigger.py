@@ -1,7 +1,5 @@
 """Test The Gym Group device triggers."""
 
-# from unittest.mock import patch
-
 from custom_components.the_gym_group.const import DOMAIN
 import pytest
 from pytest_homeassistant_custom_component.common import (

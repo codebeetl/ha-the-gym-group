@@ -1,8 +1,6 @@
 {
     "name": "The Gym Group",
     "render_readme": true,
-    "country": [
-        "GB",
-        "UK"
-    ]
+    "country": ["GB"],
+    "homeassistant": "2024.11.0"
 }

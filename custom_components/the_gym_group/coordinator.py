@@ -11,7 +11,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryAuthFailed
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 
-from .api import InvalidAuth, TheGymGroupApiClient
+from .api import CannotConnect, InvalidAuth, TheGymGroupApiClient
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,12 +37,9 @@ class TheGymGroupDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Update data via library."""
         try:
-            data = await self.api_client.async_get_busyness()
+            return await self.api_client.async_get_busyness()
         except InvalidAuth as err:
-            raise ConfigEntryAuthFailed from err
-        except Exception as err:
+            # Triggers Home Assistant's reauth flow.
+            raise ConfigEntryAuthFailed(str(err)) from err
+        except CannotConnect as err:
             raise UpdateFailed(f"Error communicating with API: {err}") from err
-
-        if data is None:
-            raise UpdateFailed("Failed to fetch data, API returned None.")
-        return data
