@@ -19,6 +19,7 @@ from homeassistant.const import (
     CONF_ENTITY_ID,
     CONF_PLATFORM,
     CONF_TYPE,
+    Platform,
 )
 from homeassistant.core import CALLBACK_TYPE, HomeAssistant
 from homeassistant.helpers import config_validation as cv, entity_registry as er
@@ -83,7 +84,7 @@ async def async_get_triggers(
     triggers: list[dict[str, Any]] = []
 
     for entry in er.async_entries_for_device(registry, device_id):
-        if entry.domain != "sensor":
+        if entry.domain != Platform.SENSOR:
             continue
 
         base = {

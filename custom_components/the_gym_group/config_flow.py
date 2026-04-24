@@ -77,7 +77,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             step_id="user",
             data_schema=vol.Schema(
                 {
-                    vol.Required(CONF_USERNAME): str,
+                    vol.Required(CONF_USERNAME): vol.Email(),
                     vol.Required(CONF_PASSWORD): str,
                 }
             ),
@@ -93,7 +93,10 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         and the form submission back to this method via step_id="reauth".
         """
         errors: dict[str, str] = {}
-        entry = self._reauth_entry()
+        try:
+            entry = self._reauth_entry()
+        except ValueError:
+            return self.async_abort(reason="unknown")
 
         if user_input is not None:
             password = user_input[CONF_PASSWORD]

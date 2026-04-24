@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from typing import Any, cast
 
@@ -91,7 +92,7 @@ class TheGymGroupApiClient:
                 self._user_id = user_id
                 _LOGGER.debug("Login successful, session cookie stored")
                 return True
-        except aiohttp.ClientError as err:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             _LOGGER.error("Error during login request: %s", err)
             raise CannotConnect(f"Login transport error: {err}") from err
 
@@ -153,6 +154,6 @@ class TheGymGroupApiClient:
                     )
                     raise CannotConnect(f"HTTP {response.status}")
                 return cast(dict[str, Any], await response.json())
-        except aiohttp.ClientError as err:
+        except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             _LOGGER.error("Error fetching gym busyness data: %s", err)
             raise CannotConnect(f"Transport error: {err}") from err

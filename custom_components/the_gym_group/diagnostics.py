@@ -23,5 +23,5 @@ async def async_get_config_entry_diagnostics(
 
     return {
         "config_entry": async_redact_data(entry.as_dict(), TO_REDACT),
-        "coordinator_data": coordinator.data,
+        "coordinator_data": coordinator.data or {},
     }
