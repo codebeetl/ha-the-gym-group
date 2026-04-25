@@ -60,7 +60,7 @@ def build_headers(
     """Build the HTTP headers used for every API request.
 
     The ``application_*`` arguments populate both ``x-np-app-version`` and the
-    composite ``x-np-user-agent`` header — keeping a single source of truth so
+    composite ``x-np-user-agent`` header - keeping a single source of truth so
     the two values can never drift.
     """
     return {

@@ -28,7 +28,7 @@ from homeassistant.helpers.typing import ConfigType
 
 from .const import DOMAIN
 
-# Translation keys used by the sensor entities — kept as module-level constants
+# Translation keys used by the sensor entities - kept as module-level constants
 # so device_trigger doesn't need to import sensor.py (avoids circular imports
 # and removes any dependency on private class attributes).
 BUSYNESS_TRANSLATION_KEY = "busyness"

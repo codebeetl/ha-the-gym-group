@@ -27,7 +27,7 @@ async def test_setup_unload_and_reload_entry(hass: HomeAssistant) -> None:
     assert entry.state is ConfigEntryState.LOADED
     assert hass.data[DOMAIN]
 
-    # Unload — the entry id should disappear from hass.data[DOMAIN] (Fix #4).
+    # Unload - the entry id should disappear from hass.data[DOMAIN] (Fix #4).
     assert await hass.config_entries.async_unload(entry.entry_id)
     await hass.async_block_till_done()
 

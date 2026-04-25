@@ -1,4 +1,4 @@
-# The Gym Group — Home Assistant integration
+# The Gym Group - Home Assistant integration
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
 [![GitHub release](https://img.shields.io/github/v/release/codebeetl/ha-the-gym-group?include_prereleases&sort=semver)](https://github.com/codebeetl/ha-the-gym-group/releases)
@@ -15,15 +15,15 @@ off how busy the gym is, or whether it's open.
 
 ## Features
 
-- **Live gym population** — current number of people in the gym (`mdi:weight-lifter`).
-- **Gym status** — `open` / `closed` (`mdi:door`).
-- **Device triggers** — automate on capacity crossing a threshold, or the gym
+- **Live gym population** - current number of people in the gym (`mdi:weight-lifter`).
+- **Gym status** - `open` / `closed` (`mdi:door`).
+- **Device triggers** - automate on capacity crossing a threshold, or the gym
   opening/closing.
-- **Extra state attributes** — percentage capacity, recent historical data,
+- **Extra state attributes** - percentage capacity, recent historical data,
   and the gym's location name.
-- **Reauth flow** — when your password changes, Home Assistant prompts you to
+- **Reauth flow** - when your password changes, Home Assistant prompts you to
   re-enter it rather than silently failing.
-- **Diagnostics** — one-click download of a redacted diagnostics bundle for
+- **Diagnostics** - one-click download of a redacted diagnostics bundle for
   bug reports.
 
 ## Requirements
@@ -35,16 +35,16 @@ off how busy the gym is, or whether it's open.
 
 ## Installation
 
-### Option A — HACS (recommended)
+### Option A - HACS (recommended)
 
-1. In Home Assistant, open **HACS → Integrations → ⋮ → Custom repositories**.
+1. In Home Assistant, open **HACS -> Integrations -> ... -> Custom repositories**.
 2. Add `https://github.com/codebeetl/ha-the-gym-group` with category
    **Integration**.
 3. Find **The Gym Group** in the HACS integrations list and click **Download**.
 4. Restart Home Assistant.
 5. Continue with [Configuration](#configuration).
 
-### Option B — Manual
+### Option B - Manual
 
 1. Download the latest release's source zip from
    [Releases](https://github.com/codebeetl/ha-the-gym-group/releases).
@@ -56,17 +56,17 @@ off how busy the gym is, or whether it's open.
 
 ## Configuration
 
-1. In Home Assistant, go to **Settings → Devices & services → Add integration**.
+1. In Home Assistant, go to **Settings -> Devices & services -> Add integration**.
 2. Search for **The Gym Group** and select it.
 3. Enter the **email** and **PIN** you use to sign into the mobile app.
 4. The integration logs in, identifies your home gym, and creates a device for
    it with two sensor entities.
 
-Everything is configured through the UI — there is **no YAML configuration**.
+Everything is configured through the UI - there is **no YAML configuration**.
 
 ### Changing credentials later
 
-Open the integration in **Settings → Devices & services**, click **Configure**,
+Open the integration in **Settings -> Devices & services**, click **Configure**,
 and re-enter the username and password. If the new credentials belong to a
 different Gym Group account, the integration will repoint the device at that
 account.
@@ -93,7 +93,7 @@ sensible defaults:
 
 Most users should leave these alone. If the integration starts failing all
 requests with 4xx after a Gym Group app update, install the latest official
-Android app, look up its version (Play Store → app → "About") and version
+Android app, look up its version (Play Store -> app -> "About") and version
 code, and update the two `Application version` fields via **Configure**. The
 integration will re-validate against the API as part of saving, so a typo
 that breaks login is caught immediately rather than at the next refresh.
@@ -105,7 +105,7 @@ One device per configured account, with two sensors:
 | Sensor | Unique ID | Unit | Description |
 | --- | --- | --- | --- |
 | Gym Population | `<gymLocationId>_busyness` | `people` | Current occupancy returned by the API. |
-| Status | `<gymLocationId>_status` | — | `open` or `closed`. |
+| Status | `<gymLocationId>_status` | - | `open` or `closed`. |
 
 Both sensors share additional state attributes on **Gym Population**:
 
@@ -119,7 +119,7 @@ Both sensors share additional state attributes on **Gym Population**:
 
 ## Device automations
 
-Use the **Automations & scenes → Create automation → Device** trigger picker on
+Use the **Automations & scenes -> Create automation -> Device** trigger picker on
 the gym device to build automations without writing YAML.
 
 Available trigger types:
@@ -131,7 +131,7 @@ Available trigger types:
 | Status changes to open | Status transitions to `open` | No |
 | Status changes to closed | Status transitions to `closed` | No |
 
-### Example 1 — Notify when the gym is quiet
+### Example 1 - Notify when the gym is quiet
 
 ```yaml
 alias: Gym is quiet, good time to go
@@ -151,7 +151,7 @@ action:
       message: "Only {{ states('sensor.gym_population') }} people in the gym."
 ```
 
-### Example 2 — Announce opening via speakers
+### Example 2 - Announce opening via speakers
 
 ```yaml
 alias: Gym has opened
@@ -166,7 +166,7 @@ action:
       message: "The gym is now open."
 ```
 
-### Example 3 — Warning when the gym is full
+### Example 3 - Warning when the gym is full
 
 ```yaml
 alias: Gym is packed
@@ -177,7 +177,7 @@ trigger:
 action:
   - service: notify.mobile_app_my_phone
     data:
-      message: "Gym is {{ state_attr('sensor.gym_population', 'current_percentage') }}% full — maybe wait."
+      message: "Gym is {{ state_attr('sensor.gym_population', 'current_percentage') }}% full - maybe wait."
 ```
 
 ## Troubleshooting
@@ -186,12 +186,12 @@ action:
 
 Try signing into the official Gym Group app with the same credentials. If the
 app works but the integration doesn't, download a diagnostics bundle
-(**Settings → Devices & services → The Gym Group → ⋮ → Download diagnostics**)
+(**Settings -> Devices & services -> The Gym Group -> ... -> Download diagnostics**)
 and open an issue.
 
 ### Entities are "unavailable" or the population is `unknown`
 
-Check the Home Assistant log (**Settings → System → Logs**) for entries from
+Check the Home Assistant log (**Settings -> System -> Logs**) for entries from
 `custom_components.the_gym_group`. Transient API errors are logged at `ERROR`;
 successful polls at `DEBUG`.
 
@@ -210,7 +210,7 @@ Restart Home Assistant to apply.
 ### Reauth loop after changing your PIN
 
 The integration raises a reauth flow when the API rejects your credentials.
-Open **Settings → Devices & services**, click the "Repair" banner, and enter
+Open **Settings -> Devices & services**, click the "Repair" banner, and enter
 your new PIN.
 
 ## Diagnostics
@@ -222,7 +222,7 @@ contains:
 - The most recent API payload (gym location, capacity, status, historical
   samples).
 
-Please include the diagnostics file when opening bug reports — it's the fastest
+Please include the diagnostics file when opening bug reports - it's the fastest
 way to reproduce issues.
 
 ## Development
@@ -238,17 +238,17 @@ pytest tests/
 
 ```
 ha-the-gym-group/
-├── hacs.json                          HACS metadata
-├── custom_components/the_gym_group/   Integration package
-│   ├── __init__.py                    Entry point (setup/unload)
-│   ├── api.py                         Thin HTTP client for the Netpulse API
-│   ├── config_flow.py                 UI setup, reauth, options
-│   ├── coordinator.py                 DataUpdateCoordinator (5-minute polling)
-│   ├── sensor.py                      Busyness + Status sensors
-│   ├── device_trigger.py              Capacity / status device triggers
-│   ├── diagnostics.py                 Redacted diagnostics bundle
-│   └── translations/                  UI strings
-└── tests/                             pytest-homeassistant-custom-component suite
+|-- hacs.json                          HACS metadata
+|-- custom_components/the_gym_group/   Integration package
+|   |-- __init__.py                    Entry point (setup/unload)
+|   |-- api.py                         Thin HTTP client for the Netpulse API
+|   |-- config_flow.py                 UI setup, reauth, options
+|   |-- coordinator.py                 DataUpdateCoordinator (5-minute polling)
+|   |-- sensor.py                      Busyness + Status sensors
+|   |-- device_trigger.py              Capacity / status device triggers
+|   |-- diagnostics.py                 Redacted diagnostics bundle
+|   `-- translations/                  UI strings
+`-- tests/                             pytest-homeassistant-custom-component suite
 ```
 
 ### Contributing
