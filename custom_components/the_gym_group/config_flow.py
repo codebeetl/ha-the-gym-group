@@ -12,6 +12,7 @@ from homeassistant import config_entries
 from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import CannotConnect, InvalidAuth, TheGymGroupApiClient
@@ -31,6 +32,17 @@ from .const import (
 
 _LOGGER = logging.getLogger(__name__)
 
+# Reusable selectors. ``TextSelector`` is used (not bare ``str`` / ``vol.Email``)
+# because HA's voluptuous_serialize-based form renderer can serialize selectors
+# into the spec the frontend needs; bare callables like ``vol.Email`` cannot be
+# serialized and cause a 500 when the form is rendered.
+_EMAIL_SELECTOR = selector.TextSelector(
+    selector.TextSelectorConfig(type=selector.TextSelectorType.EMAIL)
+)
+_PASSWORD_SELECTOR = selector.TextSelector(
+    selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
+)
+
 
 def _credentials_schema(
     defaults: Mapping[str, Any],
@@ -49,11 +61,11 @@ def _credentials_schema(
         if username_default is not None:
             schema[
                 vol.Required(CONF_USERNAME, default=username_default)
-            ] = vol.Email()
+            ] = _EMAIL_SELECTOR
         else:
-            schema[vol.Required(CONF_USERNAME)] = vol.Email()
+            schema[vol.Required(CONF_USERNAME)] = _EMAIL_SELECTOR
 
-    schema[vol.Required(CONF_PASSWORD)] = str
+    schema[vol.Required(CONF_PASSWORD)] = _PASSWORD_SELECTOR
 
     schema[
         vol.Optional(CONF_HOST, default=defaults.get(CONF_HOST, DEFAULT_HOST))
@@ -198,7 +210,9 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
         return self.async_show_form(
             step_id="reauth",
-            data_schema=vol.Schema({vol.Required(CONF_PASSWORD): str}),
+            data_schema=vol.Schema(
+                {vol.Required(CONF_PASSWORD): _PASSWORD_SELECTOR}
+            ),
             description_placeholders={"username": entry.data[CONF_USERNAME]},
             errors=errors,
         )
