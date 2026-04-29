@@ -17,7 +17,6 @@ from .const import (
     build_busyness_url,
     build_checkin_history_url,
     build_headers,
-    build_latest_checkin_url,
     build_login_url,
     build_schedule_url,
 )
@@ -163,30 +162,6 @@ class TheGymGroupApiClient:
         if data is None:
             raise InvalidAuth("Authentication still failing after re-login")
         return cast(dict[str, Any], data)
-
-    async def async_get_latest_checkin(self) -> dict[str, Any] | None:
-        """Fetch the most recent check-in.
-
-        Returns None if the server returns an empty or null response.
-
-        Raises:
-            InvalidAuth: authentication failed.
-            CannotConnect: API returned a non-auth error.
-        """
-        await self._ensure_logged_in()
-        url = build_latest_checkin_url(self._user_id, self._host)
-
-        data = await self._do_get(url, "latest check-in")
-        if data is not None:
-            return cast(dict[str, Any], data) or None
-        _LOGGER.debug("Latest check-in fetch returned auth error; re-logging in")
-        await self.async_login()
-
-        url = build_latest_checkin_url(self._user_id, self._host)
-        data = await self._do_get(url, "latest check-in")
-        if data is None:
-            raise InvalidAuth("Authentication still failing after re-login")
-        return cast(dict[str, Any], data) or None
 
     async def async_get_checkin_history(
         self, start_date: str, end_date: str

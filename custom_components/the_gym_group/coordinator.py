@@ -110,12 +110,12 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         """Fetch and aggregate activity data."""
         now = datetime.now(timezone.utc)
         month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        history_start = now - timedelta(days=365)
         week_end = now + timedelta(days=7)
 
         try:
-            latest_checkin_raw = await self.api_client.async_get_latest_checkin()
             history_raw = await self.api_client.async_get_checkin_history(
-                month_start.strftime("%Y-%m-%dT%H:%M:%S"),
+                history_start.strftime("%Y-%m-%dT%H:%M:%S"),
                 now.strftime("%Y-%m-%dT%H:%M:%S"),
             )
             schedule_raw = await self.api_client.async_get_schedule(
@@ -128,19 +128,30 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
         check_ins: list[dict[str, Any]] = history_raw.get("checkIns", [])
-        total_ms = sum(ci.get("duration", 0) for ci in check_ins)
+
+        # Most recent entry across the full history window.
+        latest_raw = (
+            max(check_ins, key=lambda ci: ci.get("checkInDate", ""))
+            if check_ins
+            else None
+        )
+
+        # Monthly stats: filter to the current calendar month.
+        month_start_str = month_start.strftime("%Y-%m-%dT%H:%M:%S")
+        monthly = [ci for ci in check_ins if ci.get("checkInDate", "") >= month_start_str]
+        total_ms = sum(ci.get("duration", 0) for ci in monthly)
 
         return {
-            "latest_checkin": _parse_checkin_dt(latest_checkin_raw),
+            "latest_checkin": _parse_checkin_dt(latest_raw),
             "latest_checkin_gym": (
-                latest_checkin_raw.get("gymLocationName") if latest_checkin_raw else None
+                latest_raw.get("gymLocationName") if latest_raw else None
             ),
             "latest_checkin_duration_minutes": (
-                round(latest_checkin_raw.get("duration", 0) / 60_000)
-                if latest_checkin_raw and latest_checkin_raw.get("duration")
+                round(latest_raw.get("duration", 0) / 60_000)
+                if latest_raw and latest_raw.get("duration")
                 else None
             ),
-            "monthly_visits": len(check_ins),
+            "monthly_visits": len(monthly),
             "monthly_hours": round(total_ms / 3_600_000, 1),
             "next_class": _find_next_class(schedule_raw),
         }

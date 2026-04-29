@@ -2,11 +2,11 @@
 # name: test_diagnostics
   dict({
     'activity_data': dict({
-      'latest_checkin': datetime.datetime(2025, 4, 1, 9, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
-      'latest_checkin_duration_minutes': 60,
+      'latest_checkin': datetime.datetime(2025, 4, 3, 8, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
+      'latest_checkin_duration_minutes': 90,
       'latest_checkin_gym': 'Test Gym',
-      'monthly_hours': 2.5,
-      'monthly_visits': 2,
+      'monthly_hours': 0.0,
+      'monthly_visits': 0,
       'next_class': dict({
         'available_spots': 6,
         'duration_minutes': 60,

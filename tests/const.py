@@ -39,14 +39,6 @@ MOCK_API_DATA = {
     "status": "open",
 }
 
-MOCK_LATEST_CHECKIN_DATA = {
-    "checkInDate": "2025-04-01T09:00:00",
-    "timezone": "Europe/London",
-    "gymLocationName": "Test Gym",
-    "gymLocationAddress": "1 Test Street",
-    "duration": 3600000,
-}
-
 MOCK_CHECKIN_HISTORY_DATA = {
     "checkIns": [
         {

@@ -16,7 +16,6 @@ from .const import (
     MOCK_API_DATA,
     MOCK_CHECKIN_HISTORY_DATA,
     MOCK_CONFIG,
-    MOCK_LATEST_CHECKIN_DATA,
     MOCK_SCHEDULE_DATA,
     MOCK_USER_ID,
 )
@@ -204,10 +203,6 @@ async def test_options_flow_success(
         patch(
             "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
             return_value=MOCK_API_DATA,
-        ),
-        patch(
-            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_latest_checkin",
-            return_value=MOCK_LATEST_CHECKIN_DATA,
         ),
         patch(
             "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_checkin_history",

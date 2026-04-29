@@ -36,7 +36,6 @@ DEFAULT_APPLICATION_VERSION_CODE = "38"
 # --- API path templates (the host is supplied at runtime).
 LOGIN_PATH = "/np/exerciser/login"
 BUSYNESS_PATH_TEMPLATE = "/np/thegymgroup/v1.0/exerciser/{user_id}/gym-busyness"
-LATEST_CHECKIN_PATH_TEMPLATE = "/np/exercisers/{user_id}/latest-check-in"
 CHECKIN_HISTORY_PATH_TEMPLATE = "/np/exercisers/{user_id}/check-ins/history"
 SCHEDULE_PATH_TEMPLATE = "/np/exerciser/{user_id}/schedule"
 
@@ -105,11 +104,6 @@ def build_login_url(host: str = DEFAULT_HOST) -> str:
 def build_busyness_url(user_id: str, host: str = DEFAULT_HOST) -> str:
     """Return the busyness URL for the given user on the given host."""
     return f"https://{host}{BUSYNESS_PATH_TEMPLATE.format(user_id=user_id)}"
-
-
-def build_latest_checkin_url(user_id: str, host: str = DEFAULT_HOST) -> str:
-    """Return the latest check-in URL for the given user."""
-    return f"https://{host}{LATEST_CHECKIN_PATH_TEMPLATE.format(user_id=user_id)}"
 
 
 def build_checkin_history_url(
