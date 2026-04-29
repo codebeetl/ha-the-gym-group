@@ -8,5 +8,5 @@
     "iot_class": "cloud_polling",
     "issue_tracker": "https://github.com/codebeetl/ha-the-gym-group/issues",
     "requirements": [],
-    "version": "0.0.3"
+    "version": "1.0.0"
 }
