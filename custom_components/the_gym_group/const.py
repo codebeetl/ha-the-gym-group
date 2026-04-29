@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from datetime import timedelta
+
 from homeassistant.const import Platform
 
 # The domain of your integration. Should be unique.
@@ -42,6 +44,14 @@ _STATIC_HEADERS: dict[str, str] = {
     "connection": "Keep-Alive",
     "x-np-api-version": "1.5",
 }
+
+# Sensor translation keys - used by sensor.py and device_trigger.py; defined
+# here to let both import from const without creating a circular dependency.
+BUSYNESS_TRANSLATION_KEY = "busyness"
+STATUS_TRANSLATION_KEY = "status"
+
+# Poll interval for the DataUpdateCoordinator.
+SCAN_INTERVAL = timedelta(minutes=5)
 
 # Max number of historical datapoints to expose as a state attribute.
 # Full history is available via diagnostics; keeping attributes small avoids

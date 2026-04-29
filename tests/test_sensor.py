@@ -1,29 +1,20 @@
 """Test The Gym Group sensors."""
 
-from unittest.mock import patch
-
 from custom_components.the_gym_group.const import DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import entity_registry as er
 
-from .const import MOCK_API_DATA, MOCK_CONFIG, MOCK_GYM_ID
+from .const import MOCK_API_DATA, MOCK_GYM_ID
 
 
 async def test_sensor_entities(
-    hass: HomeAssistant, entity_registry: er.EntityRegistry
+    hass: HomeAssistant,
+    loaded_entry: MockConfigEntry,
+    entity_registry: er.EntityRegistry,
 ) -> None:
     """Test the sensor entities are created with the correct states and attributes."""
-    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG)
-    entry.add_to_hass(hass)
-
-    with patch(
-        "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
-        return_value=MOCK_API_DATA,
-    ):
-        await hass.config_entries.async_setup(entry.entry_id)
-        await hass.async_block_till_done()
 
     # Look up entities by unique_id rather than a guessed entity_id slug - the
     # slug depends on device_name + translated entity_name and changes across

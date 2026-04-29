@@ -9,20 +9,14 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
 
-from .const import MOCK_API_DATA, MOCK_CONFIG
+from .const import MOCK_CONFIG
 
 
-async def test_setup_unload_and_reload_entry(hass: HomeAssistant) -> None:
+async def test_setup_unload_and_reload_entry(
+    hass: HomeAssistant, loaded_entry: MockConfigEntry
+) -> None:
     """Test setting up and unloading the integration."""
-    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG)
-    entry.add_to_hass(hass)
-
-    with patch(
-        "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
-        return_value=MOCK_API_DATA,
-    ):
-        await hass.config_entries.async_setup(entry.entry_id)
-        await hass.async_block_till_done()
+    entry = loaded_entry
 
     assert entry.state is ConfigEntryState.LOADED
     assert hass.data[DOMAIN]

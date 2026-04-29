@@ -38,6 +38,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         entry.data[CONF_USERNAME],
         entry.data[CONF_PASSWORD],
         session,
+        user_id=entry.unique_id or "",
         host=entry.data.get(CONF_HOST, DEFAULT_HOST),
         user_agent=entry.data.get(CONF_USER_AGENT, DEFAULT_USER_AGENT),
         application_name=entry.data.get(

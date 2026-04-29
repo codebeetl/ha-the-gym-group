@@ -58,12 +58,8 @@ def _credentials_schema(
 
     if include_username:
         username_default = defaults.get(CONF_USERNAME)
-        if username_default is not None:
-            schema[
-                vol.Required(CONF_USERNAME, default=username_default)
-            ] = _EMAIL_SELECTOR
-        else:
-            schema[vol.Required(CONF_USERNAME)] = _EMAIL_SELECTOR
+        username_kwargs = {"default": username_default} if username_default is not None else {}
+        schema[vol.Required(CONF_USERNAME, **username_kwargs)] = _EMAIL_SELECTOR
 
     schema[vol.Required(CONF_PASSWORD)] = _PASSWORD_SELECTOR
 

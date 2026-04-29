@@ -11,7 +11,7 @@ from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
-from .const import DOMAIN, HISTORICAL_ATTR_LIMIT
+from .const import BUSYNESS_TRANSLATION_KEY, DOMAIN, HISTORICAL_ATTR_LIMIT, STATUS_TRANSLATION_KEY
 from .coordinator import TheGymGroupDataUpdateCoordinator
 
 
@@ -79,7 +79,7 @@ class TheGymGroupBusynessSensor(_TheGymGroupBaseSensor):
     _attr_icon = "mdi:weight-lifter"
     _attr_native_unit_of_measurement = "people"
     _attr_state_class = SensorStateClass.MEASUREMENT
-    _attr_translation_key = "busyness"
+    _attr_translation_key = BUSYNESS_TRANSLATION_KEY
 
     def __init__(
         self,
@@ -116,7 +116,6 @@ class TheGymGroupBusynessSensor(_TheGymGroupBaseSensor):
             "gym_location_name": data.get("gymLocationName"),
             "current_percentage": data.get("currentPercentage"),
             "historical": historical,
-            "status": data.get("status"),
         }
         return {k: v for k, v in raw.items() if v is not None}
 
@@ -125,7 +124,7 @@ class TheGymGroupStatusSensor(_TheGymGroupBaseSensor):
     """Representation of The Gym Group status sensor (open/closed)."""
 
     _attr_icon = "mdi:door"
-    _attr_translation_key = "status"
+    _attr_translation_key = STATUS_TRANSLATION_KEY
 
     def __init__(
         self,

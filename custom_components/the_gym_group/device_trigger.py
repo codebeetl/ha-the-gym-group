@@ -26,13 +26,7 @@ from homeassistant.helpers import config_validation as cv, entity_registry as er
 from homeassistant.helpers.trigger import TriggerActionType, TriggerInfo
 from homeassistant.helpers.typing import ConfigType
 
-from .const import DOMAIN
-
-# Translation keys used by the sensor entities - kept as module-level constants
-# so device_trigger doesn't need to import sensor.py (avoids circular imports
-# and removes any dependency on private class attributes).
-BUSYNESS_TRANSLATION_KEY = "busyness"
-STATUS_TRANSLATION_KEY = "status"
+from .const import BUSYNESS_TRANSLATION_KEY, DOMAIN, STATUS_TRANSLATION_KEY
 
 TRIGGER_CAPACITY_ABOVE = "capacity_above"
 TRIGGER_CAPACITY_BELOW = "capacity_below"
@@ -118,10 +112,6 @@ async def async_attach_trigger(
         threshold_key = (
             CONF_ABOVE if trigger_type == TRIGGER_CAPACITY_ABOVE else CONF_BELOW
         )
-        if threshold_key not in config:
-            raise InvalidDeviceAutomationConfig(
-                f"'{threshold_key}' is required for trigger type '{trigger_type}'"
-            )
         numeric_config: dict[str, Any] = {
             CONF_PLATFORM: "numeric_state",
             CONF_ENTITY_ID: entity_id,
