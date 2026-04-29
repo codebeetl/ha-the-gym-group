@@ -15,8 +15,11 @@ from .const import (
     DEFAULT_HOST,
     DEFAULT_USER_AGENT,
     build_busyness_url,
+    build_checkin_history_url,
     build_headers,
+    build_latest_checkin_url,
     build_login_url,
+    build_schedule_url,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -141,34 +144,99 @@ class TheGymGroupApiClient:
     async def async_get_busyness(self) -> dict[str, Any]:
         """Fetch the gym busyness data.
 
-        Returns:
-            The busyness payload.
-
         Raises:
-            InvalidAuth: authentication failed (surfaced to the coordinator so HA
-                can trigger a reauth flow).
+            InvalidAuth: authentication failed.
             CannotConnect: API returned a non-auth error.
         """
         await self._ensure_logged_in()
         url: str = build_busyness_url(self._user_id, self._host)
 
-        data = await self._do_get(url)
+        data = await self._do_get(url, "gym busyness")
         if data is not None:
-            return data
+            return cast(dict[str, Any], data)
 
-        # Likely expired session - re-login and retry once.
         _LOGGER.debug("Busyness fetch returned auth error; re-logging in")
         await self.async_login()
 
-        # Rebuild the URL in case user_id changed on re-login.
         url = build_busyness_url(self._user_id, self._host)
-        data = await self._do_get(url)
+        data = await self._do_get(url, "gym busyness")
         if data is None:
-            # Credentials no longer valid after a fresh login - bubble up.
             raise InvalidAuth("Authentication still failing after re-login")
-        return data
+        return cast(dict[str, Any], data)
 
-    async def _do_get(self, url: str) -> dict[str, Any] | None:
+    async def async_get_latest_checkin(self) -> dict[str, Any] | None:
+        """Fetch the most recent check-in.
+
+        Returns None if the server returns an empty or null response.
+
+        Raises:
+            InvalidAuth: authentication failed.
+            CannotConnect: API returned a non-auth error.
+        """
+        await self._ensure_logged_in()
+        url = build_latest_checkin_url(self._user_id, self._host)
+
+        data = await self._do_get(url, "latest check-in")
+        if data is not None:
+            return cast(dict[str, Any], data) or None
+        _LOGGER.debug("Latest check-in fetch returned auth error; re-logging in")
+        await self.async_login()
+
+        url = build_latest_checkin_url(self._user_id, self._host)
+        data = await self._do_get(url, "latest check-in")
+        if data is None:
+            raise InvalidAuth("Authentication still failing after re-login")
+        return cast(dict[str, Any], data) or None
+
+    async def async_get_checkin_history(
+        self, start_date: str, end_date: str
+    ) -> dict[str, Any]:
+        """Fetch check-in history for an ISO date range.
+
+        Raises:
+            InvalidAuth: authentication failed.
+            CannotConnect: API returned a non-auth error.
+        """
+        await self._ensure_logged_in()
+        url = build_checkin_history_url(self._user_id, start_date, end_date, self._host)
+
+        data = await self._do_get(url, "check-in history")
+        if data is not None:
+            return cast(dict[str, Any], data)
+        _LOGGER.debug("Check-in history fetch returned auth error; re-logging in")
+        await self.async_login()
+
+        url = build_checkin_history_url(self._user_id, start_date, end_date, self._host)
+        data = await self._do_get(url, "check-in history")
+        if data is None:
+            raise InvalidAuth("Authentication still failing after re-login")
+        return cast(dict[str, Any], data)
+
+    async def async_get_schedule(
+        self, start_ms: int, end_ms: int
+    ) -> list[dict[str, Any]]:
+        """Fetch the user's booked upcoming classes.
+
+        Raises:
+            InvalidAuth: authentication failed.
+            CannotConnect: API returned a non-auth error.
+        """
+        await self._ensure_logged_in()
+        url = build_schedule_url(self._user_id, start_ms, end_ms, self._host)
+
+        data = await self._do_get(url, "schedule")
+        if data is not None:
+            return cast(list[dict[str, Any]], data)
+        _LOGGER.debug("Schedule fetch returned auth error; re-logging in")
+        await self.async_login()
+
+        url = build_schedule_url(self._user_id, start_ms, end_ms, self._host)
+        data = await self._do_get(url, "schedule")
+        if data is None:
+            raise InvalidAuth("Authentication still failing after re-login")
+        return cast(list[dict[str, Any]], data)
+
+    async def _do_get(self, url: str, description: str = "data") -> Any | None:
         """Perform a GET and return JSON, or None if auth was rejected.
 
         Raises:
@@ -182,10 +250,10 @@ class TheGymGroupApiClient:
                     return None
                 if response.status != 200:
                     _LOGGER.error(
-                        "Failed to fetch gym busyness data: %s", response.status
+                        "Failed to fetch %s: HTTP %s", description, response.status
                     )
                     raise CannotConnect(f"HTTP {response.status}")
-                return cast(dict[str, Any], await response.json())
+                return await response.json()
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            _LOGGER.error("Error fetching gym busyness data: %s", err)
+            _LOGGER.error("Error fetching %s: %s", description, err)
             raise CannotConnect(f"Transport error: {err}") from err

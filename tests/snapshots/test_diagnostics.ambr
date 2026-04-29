@@ -1,0 +1,55 @@
+# serializer version: 1
+# name: test_diagnostics
+  dict({
+    'activity_data': dict({
+      'latest_checkin': datetime.datetime(2025, 4, 1, 9, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
+      'latest_checkin_duration_minutes': 60,
+      'latest_checkin_gym': 'Test Gym',
+      'monthly_hours': 2.5,
+      'monthly_visits': 2,
+      'next_class': dict({
+        'available_spots': 6,
+        'duration_minutes': 60,
+        'instructor': 'Jane Smith',
+        'name': 'SGT-Functional Conditioning',
+        'start_dt': datetime.datetime(2286, 11, 20, 17, 46, 39, tzinfo=datetime.timezone.utc),
+      }),
+    }),
+    'busyness_data': dict({
+      'currentCapacity': 50,
+      'currentPercentage': 25,
+      'gymLocationId': 'mock-gym-id-456',
+      'gymLocationName': 'Test Gym',
+      'historical': list([
+      ]),
+      'status': 'open',
+    }),
+    'config_entry': dict({
+      'created_at': '**REDACTED**',
+      'data': dict({
+        'application_name': 'The Gym Group',
+        'application_version': '6.10',
+        'application_version_code': '38',
+        'host': 'thegymgroup.netpulse.com',
+        'password': '**REDACTED**',
+        'user_agent': 'okhttp/3.12.3',
+        'username': '**REDACTED**',
+      }),
+      'disabled_by': None,
+      'discovery_keys': dict({
+      }),
+      'domain': 'the_gym_group',
+      'entry_id': '**REDACTED**',
+      'minor_version': 1,
+      'modified_at': '**REDACTED**',
+      'options': dict({
+      }),
+      'pref_disable_new_entities': False,
+      'pref_disable_polling': False,
+      'source': 'user',
+      'title': 'Mock Title',
+      'unique_id': None,
+      'version': 1,
+    }),
+  })
+# ---

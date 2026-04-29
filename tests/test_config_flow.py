@@ -12,7 +12,14 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
 
-from .const import MOCK_CONFIG, MOCK_USER_ID
+from .const import (
+    MOCK_API_DATA,
+    MOCK_CHECKIN_HISTORY_DATA,
+    MOCK_CONFIG,
+    MOCK_LATEST_CHECKIN_DATA,
+    MOCK_SCHEDULE_DATA,
+    MOCK_USER_ID,
+)
 
 
 @pytest.mark.usefixtures("mock_setup_entry")
@@ -173,14 +180,13 @@ async def test_reauth_flow_invalid_auth(hass: HomeAssistant) -> None:
     assert result2["errors"] == {"base": "invalid_auth"}
 
 
-async def test_options_flow_success(hass: HomeAssistant) -> None:
+async def test_options_flow_success(
+    hass: HomeAssistant, loaded_entry: MockConfigEntry
+) -> None:
     """Test the options flow (reconfigure) succeeds."""
-    mock_entry = MockConfigEntry(
-        domain=DOMAIN, data=MOCK_CONFIG, unique_id=MOCK_USER_ID
-    )
-    mock_entry.add_to_hass(hass)
+    entry = loaded_entry
 
-    result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+    result = await hass.config_entries.options.async_init(entry.entry_id)
     assert result["type"] == FlowResultType.FORM
     assert result["step_id"] == "init"
 
@@ -195,6 +201,22 @@ async def test_options_flow_success(hass: HomeAssistant) -> None:
             return_value=True,
         ),
         patch("homeassistant.config_entries.ConfigEntries.async_reload") as mock_reload,
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
+            return_value=MOCK_API_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_latest_checkin",
+            return_value=MOCK_LATEST_CHECKIN_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_checkin_history",
+            return_value=MOCK_CHECKIN_HISTORY_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_schedule",
+            return_value=MOCK_SCHEDULE_DATA,
+        ),
     ):
         result2 = await hass.config_entries.options.async_configure(
             result["flow_id"], user_input=new_config
@@ -202,7 +224,7 @@ async def test_options_flow_success(hass: HomeAssistant) -> None:
         await hass.async_block_till_done()
 
     assert result2["type"] == FlowResultType.CREATE_ENTRY
-    assert mock_entry.data == new_config
+    assert entry.data == new_config
     assert len(mock_reload.mock_calls) == 1
 
 

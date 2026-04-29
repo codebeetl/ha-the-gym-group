@@ -74,6 +74,18 @@
             },
             "status": {
                 "name": "Status"
+            },
+            "last_checkin": {
+                "name": "Last Check-in"
+            },
+            "monthly_visits": {
+                "name": "Monthly Visits"
+            },
+            "monthly_time": {
+                "name": "Monthly Gym Time"
+            },
+            "next_class": {
+                "name": "Next Booked Class"
             }
         }
     }

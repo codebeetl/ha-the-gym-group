@@ -38,3 +38,45 @@ MOCK_API_DATA = {
     "historical": [],
     "status": "open",
 }
+
+MOCK_LATEST_CHECKIN_DATA = {
+    "checkInDate": "2025-04-01T09:00:00",
+    "timezone": "Europe/London",
+    "gymLocationName": "Test Gym",
+    "gymLocationAddress": "1 Test Street",
+    "duration": 3600000,
+}
+
+MOCK_CHECKIN_HISTORY_DATA = {
+    "checkIns": [
+        {
+            "checkInDate": "2025-04-01T09:00:00",
+            "timezone": "Europe/London",
+            "gymLocationName": "Test Gym",
+            "duration": 3600000,
+        },
+        {
+            "checkInDate": "2025-04-03T08:00:00",
+            "timezone": "Europe/London",
+            "gymLocationName": "Test Gym",
+            "duration": 5400000,
+        },
+    ]
+}
+
+MOCK_SCHEDULE_DATA = [
+    {
+        "brief": {
+            "id": "class-uuid-001",
+            "name": "SGT-Functional Conditioning",
+            "startDateTime": 9_999_999_999_000,
+            "endDateTime": 10_000_003_600_000,
+            "instructor": {"fullName": "Jane Smith"},
+            "maxCapacity": 16,
+            "totalBooked": 10,
+            "cancelled": False,
+            "booked": True,
+        },
+        "attendeeDetails": {"booked": True},
+    }
+]

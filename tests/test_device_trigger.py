@@ -2,12 +2,13 @@
 
 from custom_components.the_gym_group.const import DOMAIN
 import pytest
-from pytest_homeassistant_custom_component.common import (
-    MockConfigEntry,
-    async_get_device_automations,
-)
+from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from homeassistant.components import automation
+from homeassistant.components.device_automation import (
+    DeviceAutomationType,
+    async_get_device_automations as _ha_get_device_automations,
+)
 from homeassistant.core import HomeAssistant, ServiceCall
 from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.setup import async_setup_component
@@ -61,13 +62,19 @@ async def test_get_triggers(
 ) -> None:
     """Test that we get the expected triggers from a device."""
     expected_triggers = [
-        {"type": "capacity_above", "entity_id": busyness_entity_id, "domain": "sensor"},
-        {"type": "capacity_below", "entity_id": busyness_entity_id, "domain": "sensor"},
-        {"type": "status_open", "entity_id": status_entity_id, "domain": "sensor"},
-        {"type": "status_closed", "entity_id": status_entity_id, "domain": "sensor"},
+        {"type": "capacity_above", "entity_id": busyness_entity_id, "domain": DOMAIN},
+        {"type": "capacity_below", "entity_id": busyness_entity_id, "domain": DOMAIN},
+        {"type": "status_open", "entity_id": status_entity_id, "domain": DOMAIN},
+        {"type": "status_closed", "entity_id": status_entity_id, "domain": DOMAIN},
     ]
-    triggers = await async_get_device_automations(hass, "trigger", device_id)
-    assert triggers == expected_triggers
+    all_triggers = await _ha_get_device_automations(
+        hass, DeviceAutomationType.TRIGGER, [device_id]
+    )
+    triggers = all_triggers.get(device_id, [])
+    # Extract only the fields the expected list uses; HA may return additional
+    # metadata (platform, device_id, metadata) that varies across versions.
+    trigger_keys = {"type", "entity_id", "domain"}
+    assert [{k: t[k] for k in trigger_keys} for t in triggers] == expected_triggers
 
 
 async def test_if_fires_on_capacity_above(

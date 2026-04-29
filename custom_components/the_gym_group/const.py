@@ -36,6 +36,9 @@ DEFAULT_APPLICATION_VERSION_CODE = "38"
 # --- API path templates (the host is supplied at runtime).
 LOGIN_PATH = "/np/exerciser/login"
 BUSYNESS_PATH_TEMPLATE = "/np/thegymgroup/v1.0/exerciser/{user_id}/gym-busyness"
+LATEST_CHECKIN_PATH_TEMPLATE = "/np/exercisers/{user_id}/latest-check-in"
+CHECKIN_HISTORY_PATH_TEMPLATE = "/np/exercisers/{user_id}/check-ins/history"
+SCHEDULE_PATH_TEMPLATE = "/np/exerciser/{user_id}/schedule"
 
 # Static header values that we don't currently need to expose for tweaking.
 _STATIC_HEADERS: dict[str, str] = {
@@ -49,9 +52,16 @@ _STATIC_HEADERS: dict[str, str] = {
 # here to let both import from const without creating a circular dependency.
 BUSYNESS_TRANSLATION_KEY = "busyness"
 STATUS_TRANSLATION_KEY = "status"
+LAST_CHECKIN_TRANSLATION_KEY = "last_checkin"
+MONTHLY_VISITS_TRANSLATION_KEY = "monthly_visits"
+MONTHLY_TIME_TRANSLATION_KEY = "monthly_time"
+NEXT_CLASS_TRANSLATION_KEY = "next_class"
 
-# Poll interval for the DataUpdateCoordinator.
+# Poll interval for the busyness DataUpdateCoordinator.
 SCAN_INTERVAL = timedelta(minutes=5)
+
+# Poll interval for the activity DataUpdateCoordinator (check-ins, schedule).
+ACTIVITY_SCAN_INTERVAL = timedelta(minutes=30)
 
 # Max number of historical datapoints to expose as a state attribute.
 # Full history is available via diagnostics; keeping attributes small avoids
@@ -95,3 +105,24 @@ def build_login_url(host: str = DEFAULT_HOST) -> str:
 def build_busyness_url(user_id: str, host: str = DEFAULT_HOST) -> str:
     """Return the busyness URL for the given user on the given host."""
     return f"https://{host}{BUSYNESS_PATH_TEMPLATE.format(user_id=user_id)}"
+
+
+def build_latest_checkin_url(user_id: str, host: str = DEFAULT_HOST) -> str:
+    """Return the latest check-in URL for the given user."""
+    return f"https://{host}{LATEST_CHECKIN_PATH_TEMPLATE.format(user_id=user_id)}"
+
+
+def build_checkin_history_url(
+    user_id: str, start_date: str, end_date: str, host: str = DEFAULT_HOST
+) -> str:
+    """Return the check-in history URL for the given user and date range."""
+    path = CHECKIN_HISTORY_PATH_TEMPLATE.format(user_id=user_id)
+    return f"https://{host}{path}?startDate={start_date}&endDate={end_date}"
+
+
+def build_schedule_url(
+    user_id: str, start_ms: int, end_ms: int, host: str = DEFAULT_HOST
+) -> str:
+    """Return the user schedule URL for the given epoch-millisecond range."""
+    path = SCHEDULE_PATH_TEMPLATE.format(user_id=user_id)
+    return f"https://{host}{path}?startDateTime={start_ms}&endDateTime={end_ms}"
