@@ -100,14 +100,16 @@ that breaks login is caught immediately rather than at the next refresh.
 
 ## Entities provided
 
-One device per configured account, with two sensors:
+One device per configured account, with six sensors across two polling groups.
+
+### Busyness sensors (updated every 5 minutes)
 
 | Sensor | Unique ID | Unit | Description |
 | --- | --- | --- | --- |
 | Gym Population | `<gymLocationId>_busyness` | `people` | Current occupancy returned by the API. |
 | Status | `<gymLocationId>_status` | - | `open` or `closed`. |
 
-Both sensors share additional state attributes on **Gym Population**:
+Additional state attributes on **Gym Population**:
 
 | Attribute | Type | Description |
 | --- | --- | --- |
@@ -116,6 +118,32 @@ Both sensors share additional state attributes on **Gym Population**:
 | `current_percentage` | int | Occupancy expressed as a percentage of capacity. |
 | `historical` | list | The most recent occupancy samples from the API (trimmed to 24). |
 | `status` | string | Mirrors the Status sensor for convenience. |
+
+### Activity sensors (updated every 30 minutes)
+
+| Sensor | Unique ID | Unit | Description |
+| --- | --- | --- | --- |
+| Last Check-in | `<gymLocationId>_last_checkin` | - | Date and time of your most recent gym visit. |
+| Monthly Visits | `<gymLocationId>_monthly_visits` | `visits` | Number of visits in the current calendar month. |
+| Monthly Gym Time | `<gymLocationId>_monthly_time` | `h` | Total hours spent in the gym this calendar month. |
+| Next Booked Class | `<gymLocationId>_next_class` | - | Start time of your next booked class, or `None` if none are booked. |
+
+Additional state attributes on **Last Check-in**:
+
+| Attribute | Type | Description |
+| --- | --- | --- |
+| `gym_location_name` | string | Name of the gym visited. |
+| `duration_minutes` | int | Duration of the most recent visit in minutes. |
+| `checkin_history` | list | All visits in the last 35 days, each with `datetime` and `duration_minutes`. Useful for dashboard visit markers (see [Dashboard example](#dashboard-example)). |
+
+Additional state attributes on **Next Booked Class**:
+
+| Attribute | Type | Description |
+| --- | --- | --- |
+| `class_name` | string | Name of the class. |
+| `instructor` | string | Instructor's full name. |
+| `available_spots` | int | Remaining bookable spots. |
+| `duration_minutes` | int | Class duration in minutes. |
 
 ## Device automations
 
@@ -180,6 +208,35 @@ action:
       message: "Gym is {{ state_attr('sensor.gym_population', 'current_percentage') }}% full - maybe wait."
 ```
 
+## Dashboard example
+
+The [`examples/gym-busyness-card.yaml`](examples/gym-busyness-card.yaml) file
+contains a ready-to-use [ApexCharts Card](https://github.com/RomRider/apexcharts-card)
+configuration that shows:
+
+- **Current gym population** as a bright line.
+- **The same weekday for the last four weeks** as progressively transparent area
+  fills, giving a visual sense of how busy the gym typically is at each time of
+  day.
+- **Visit markers** — one orange column per visit in the last 35 days, projected
+  onto today's time axis. Column height represents visit duration in minutes.
+  The tooltip shows visit time and duration.
+
+> **Recorder retention** — the four-week history requires at least 35 days of
+> HA history. Add this to `configuration.yaml` and restart, then wait for the
+> weeks to fill in:
+>
+> ```yaml
+> recorder:
+>   purge_keep_days: 35
+> ```
+
+To use the card, install ApexCharts Card via HACS, then paste the contents of
+[`examples/gym-busyness-card.yaml`](examples/gym-busyness-card.yaml) into a
+new manual card. Replace `bury_st_edmunds` in the entity IDs with the slug for
+your gym (visible in **Settings -> Devices & services -> The Gym Group ->
+entities**).
+
 ## Troubleshooting
 
 ### "Invalid username or password"
@@ -243,11 +300,13 @@ ha-the-gym-group/
 |   |-- __init__.py                    Entry point (setup/unload)
 |   |-- api.py                         Thin HTTP client for the Netpulse API
 |   |-- config_flow.py                 UI setup, reauth, options
-|   |-- coordinator.py                 DataUpdateCoordinator (5-minute polling)
-|   |-- sensor.py                      Busyness + Status sensors
+|   |-- coordinator.py                 DataUpdateCoordinator (polling)
+|   |-- sensor.py                      All six sensor entities
 |   |-- device_trigger.py              Capacity / status device triggers
 |   |-- diagnostics.py                 Redacted diagnostics bundle
 |   `-- translations/                  UI strings
+|-- examples/
+|   `-- gym-busyness-card.yaml         ApexCharts Card dashboard example
 `-- tests/                             pytest-homeassistant-custom-component suite
 ```
 
