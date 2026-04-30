@@ -1,0 +1,107 @@
+type: custom:apexcharts-card
+header:
+  show: false
+graph_span: 24h
+span:
+  start: day
+now:
+  show: true
+  label: Now
+yaxis:
+  - id: people
+    min: 0
+    max: ~100
+    apex_config:
+      title:
+        text: Number of People
+series:
+  - entity: sensor.bury_st_edmunds_gym_population
+    name: 4wk ago
+    color: "#003f7f"
+    stroke_width: 1
+    opacity: 0.2
+    type: area
+    yaxis_id: people
+    offset: "-28d"
+    show:
+      legend_value: false
+      in_header: false
+  - entity: sensor.bury_st_edmunds_gym_population
+    name: 3wk ago
+    color: "#004d99"
+    stroke_width: 1
+    opacity: 0.25
+    type: area
+    yaxis_id: people
+    offset: "-21d"
+    show:
+      legend_value: false
+      in_header: false
+  - entity: sensor.bury_st_edmunds_gym_population
+    name: 2wk ago
+    color: "#005cb3"
+    stroke_width: 1
+    opacity: 0.3
+    type: area
+    yaxis_id: people
+    offset: "-14d"
+    show:
+      legend_value: false
+      in_header: false
+  - entity: sensor.bury_st_edmunds_gym_population
+    name: Last Week
+    color: "#0066cc"
+    stroke_width: 2
+    opacity: 0.4
+    type: area
+    yaxis_id: people
+    offset: "-7d"
+    show:
+      legend_value: true
+      in_header: false
+  - entity: sensor.bury_st_edmunds_gym_population
+    name: Gym Now
+    color: "#00bbff"
+    stroke_width: 2
+    yaxis_id: people
+    show:
+      legend_value: true
+      in_header: false
+  - entity: sensor.bury_st_edmunds_last_check_in
+    name: Last Visit
+    color: "#ff8800"
+    type: column
+    yaxis_id: people
+    data_generator: |
+      var history = (entity.attributes && entity.attributes.checkin_history) || [];
+      if (!history.length) return [];
+      var now = new Date();
+      var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var points = [];
+      history.forEach(function(ci) {
+        if (!ci.datetime) return;
+        var d = new Date(ci.datetime);
+        var t = todayStart.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
+        if (t > now.getTime()) return;
+        var dur = ci.duration_minutes || 100;
+        points.push([t, Math.min(dur, 100)]);
+      });
+      return points;
+    show:
+      legend_value: false
+      in_header: false
+apex_config:
+  plotOptions:
+    bar:
+      columnWidth: "3px"
+  tooltip:
+    x:
+      format: HH:mm
+    y:
+      formatter: "[[fn: function(val, opts) { return opts.seriesIndex === 5 ? val + ' min' : val + ' people'; }]]"
+  legend:
+    show: true
+    position: top
+  xaxis:
+    labels:
+      format: HH:mm
