@@ -190,11 +190,12 @@ class TheGymGroupLastCheckinSensor(_TheGymGroupBaseSensor):
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        """Return gym name and visit duration for the last check-in."""
+        """Return gym name, visit duration, and recent check-in history."""
         data = self.coordinator.data or {}
         raw = {
             "gym_location_name": data.get("latest_checkin_gym"),
             "duration_minutes": data.get("latest_checkin_duration_minutes"),
+            "checkin_history": data.get("checkin_history"),
         }
         return {k: v for k, v in raw.items() if v is not None}
 

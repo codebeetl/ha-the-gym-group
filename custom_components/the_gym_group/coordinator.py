@@ -141,6 +141,17 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         monthly = [ci for ci in check_ins if ci.get("checkInDate", "") >= month_start_str]
         total_ms = sum(ci.get("duration", 0) for ci in monthly)
 
+        # Last 35 days of check-ins for dashboard history markers.
+        recent_cutoff = (now - timedelta(days=35)).strftime("%Y-%m-%dT%H:%M:%S")
+        recent_checkins = [
+            {
+                "datetime": ci["checkInDate"],
+                "duration_minutes": round(ci["duration"] / 60_000) if ci.get("duration") else None,
+            }
+            for ci in check_ins
+            if ci.get("checkInDate", "") >= recent_cutoff
+        ]
+
         return {
             "latest_checkin": _parse_checkin_dt(latest_raw),
             "latest_checkin_gym": (
@@ -151,6 +162,7 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 if latest_raw and latest_raw.get("duration")
                 else None
             ),
+            "checkin_history": recent_checkins,
             "monthly_visits": len(monthly),
             "monthly_hours": round(total_ms / 3_600_000, 1),
             "next_class": _find_next_class(schedule_raw),
