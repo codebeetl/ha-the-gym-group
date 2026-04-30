@@ -68,32 +68,117 @@ series:
       legend_value: true
       in_header: false
   - entity: sensor.bury_st_edmunds_last_check_in
-    name: Last Visit
+    name: Visit (this week)
     color: "#ff8800"
+    opacity: 1.0
     type: column
     yaxis_id: people
     data_generator: |
-      var history = (entity.attributes && entity.attributes.checkin_history) || [];
-      if (!history.length) return [];
-      var now = new Date();
-      var todayDow = now.getDay();
-      var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      var opacities = [1.0, 0.55, 0.3, 0.15, 0.07];
-      var points = [];
-      history.forEach(function(ci) {
-        if (!ci.datetime) return;
-        var d = new Date(ci.datetime);
-        if (d.getDay() !== todayDow) return;
-        var visitDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
-        var weeksAgo = Math.round((todayStart - visitDate) / 604800000);
-        if (weeksAgo < 0 || weeksAgo > 4) return;
-        var t = todayStart.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
-        if (t > now.getTime()) return;
-        var opacity = opacities[weeksAgo] !== undefined ? opacities[weeksAgo] : 0.07;
-        var dur = ci.duration_minutes || 100;
-        points.push({ x: t, y: Math.min(dur, 100), fillColor: 'rgba(255,136,0,' + opacity + ')' });
-      });
-      return points;
+      var h = (entity.attributes && entity.attributes.checkin_history) || [];
+      var now = new Date(); var dow = now.getDay();
+      var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      for (var i = 0; i < h.length; i++) {
+        if (!h[i].datetime) continue;
+        var d = new Date(h[i].datetime);
+        if (d.getDay() !== dow) continue;
+        if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 0) continue;
+        var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
+        if (t > now.getTime()) return [];
+        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+      }
+      return [];
+    show:
+      legend_value: false
+      in_header: false
+  - entity: sensor.bury_st_edmunds_last_check_in
+    name: Visit (1wk ago)
+    color: "#ff8800"
+    opacity: 0.55
+    type: column
+    yaxis_id: people
+    data_generator: |
+      var h = (entity.attributes && entity.attributes.checkin_history) || [];
+      var now = new Date(); var dow = now.getDay();
+      var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      for (var i = 0; i < h.length; i++) {
+        if (!h[i].datetime) continue;
+        var d = new Date(h[i].datetime);
+        if (d.getDay() !== dow) continue;
+        if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 1) continue;
+        var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
+        if (t > now.getTime()) return [];
+        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+      }
+      return [];
+    show:
+      legend_value: false
+      in_header: false
+  - entity: sensor.bury_st_edmunds_last_check_in
+    name: Visit (2wk ago)
+    color: "#ff8800"
+    opacity: 0.3
+    type: column
+    yaxis_id: people
+    data_generator: |
+      var h = (entity.attributes && entity.attributes.checkin_history) || [];
+      var now = new Date(); var dow = now.getDay();
+      var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      for (var i = 0; i < h.length; i++) {
+        if (!h[i].datetime) continue;
+        var d = new Date(h[i].datetime);
+        if (d.getDay() !== dow) continue;
+        if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 2) continue;
+        var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
+        if (t > now.getTime()) return [];
+        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+      }
+      return [];
+    show:
+      legend_value: false
+      in_header: false
+  - entity: sensor.bury_st_edmunds_last_check_in
+    name: Visit (3wk ago)
+    color: "#ff8800"
+    opacity: 0.15
+    type: column
+    yaxis_id: people
+    data_generator: |
+      var h = (entity.attributes && entity.attributes.checkin_history) || [];
+      var now = new Date(); var dow = now.getDay();
+      var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      for (var i = 0; i < h.length; i++) {
+        if (!h[i].datetime) continue;
+        var d = new Date(h[i].datetime);
+        if (d.getDay() !== dow) continue;
+        if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 3) continue;
+        var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
+        if (t > now.getTime()) return [];
+        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+      }
+      return [];
+    show:
+      legend_value: false
+      in_header: false
+  - entity: sensor.bury_st_edmunds_last_check_in
+    name: Visit (4wk ago)
+    color: "#ff8800"
+    opacity: 0.07
+    type: column
+    yaxis_id: people
+    data_generator: |
+      var h = (entity.attributes && entity.attributes.checkin_history) || [];
+      var now = new Date(); var dow = now.getDay();
+      var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      for (var i = 0; i < h.length; i++) {
+        if (!h[i].datetime) continue;
+        var d = new Date(h[i].datetime);
+        if (d.getDay() !== dow) continue;
+        if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 4) continue;
+        var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
+        if (t > now.getTime()) return [];
+        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+      }
+      return [];
     show:
       legend_value: false
       in_header: false
@@ -105,7 +190,7 @@ apex_config:
     x:
       format: HH:mm
     y:
-      formatter: "[[fn: function(val, opts) { return opts.seriesIndex === 5 ? val + ' min' : val + ' people'; }]]"
+      formatter: "[[fn: function(val, opts) { return opts.seriesIndex >= 6 ? val + ' min' : val + ' people'; }]]"
   legend:
     show: true
     position: top
