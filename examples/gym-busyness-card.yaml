@@ -76,15 +76,22 @@ series:
       var history = (entity.attributes && entity.attributes.checkin_history) || [];
       if (!history.length) return [];
       var now = new Date();
+      var todayDow = now.getDay();
       var todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      var opacities = [1.0, 0.55, 0.3, 0.15, 0.07];
       var points = [];
       history.forEach(function(ci) {
         if (!ci.datetime) return;
         var d = new Date(ci.datetime);
+        if (d.getDay() !== todayDow) return;
+        var visitDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+        var weeksAgo = Math.round((todayStart - visitDate) / 604800000);
+        if (weeksAgo < 0 || weeksAgo > 4) return;
         var t = todayStart.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
         if (t > now.getTime()) return;
+        var opacity = opacities[weeksAgo] !== undefined ? opacities[weeksAgo] : 0.07;
         var dur = ci.duration_minutes || 100;
-        points.push([t, Math.min(dur, 100)]);
+        points.push({ x: t, y: Math.min(dur, 100), fillColor: 'rgba(255,136,0,' + opacity + ')' });
       });
       return points;
     show:
