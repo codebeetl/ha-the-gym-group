@@ -190,7 +190,7 @@ apex_config:
     x:
       format: HH:mm
     y:
-      formatter: "[[fn: function(val, opts) { return opts.seriesIndex >= 6 ? val + ' min' : val + ' people'; }]]"
+      formatter: "[[fn: function(val, opts) { if (opts.seriesIndex < 5) return val + ' people'; var weeksAgo = opts.seriesIndex - 5; var d = new Date(); d.setDate(d.getDate() - weeksAgo * 7); var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return val + ' min (' + days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ')'; }]]"
   legend:
     show: true
     position: top
