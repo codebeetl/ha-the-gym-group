@@ -218,11 +218,11 @@ configuration that shows:
 - **The same weekday for the last four weeks** as progressively transparent area
   fills, giving a visual sense of how busy the gym typically is at each time of
   day.
-- **Visit markers** — one orange column per visit in the last 35 days, projected
+- **Visit markers** - one orange column per visit in the last 35 days, projected
   onto today's time axis. Column height represents visit duration in minutes.
   The tooltip shows visit time and duration.
 
-> **Recorder retention** — the four-week history requires at least 35 days of
+> **Recorder retention** - the four-week history requires at least 35 days of
 > HA history. Add this to `configuration.yaml` and restart, then wait for the
 > weeks to fill in:
 >
