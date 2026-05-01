@@ -79,7 +79,7 @@ series:
       var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       for (var i = 0; i < h.length; i++) {
         if (!h[i].datetime) continue;
-        var d = new Date(h[i].datetime);
+        var d = new Date(h[i].datetime + 'Z');
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 0) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
@@ -102,7 +102,7 @@ series:
       var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       for (var i = 0; i < h.length; i++) {
         if (!h[i].datetime) continue;
-        var d = new Date(h[i].datetime);
+        var d = new Date(h[i].datetime + 'Z');
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 1) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
@@ -125,7 +125,7 @@ series:
       var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       for (var i = 0; i < h.length; i++) {
         if (!h[i].datetime) continue;
-        var d = new Date(h[i].datetime);
+        var d = new Date(h[i].datetime + 'Z');
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 2) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
@@ -148,7 +148,7 @@ series:
       var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       for (var i = 0; i < h.length; i++) {
         if (!h[i].datetime) continue;
-        var d = new Date(h[i].datetime);
+        var d = new Date(h[i].datetime + 'Z');
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 3) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
@@ -171,7 +171,7 @@ series:
       var s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
       for (var i = 0; i < h.length; i++) {
         if (!h[i].datetime) continue;
-        var d = new Date(h[i].datetime);
+        var d = new Date(h[i].datetime + 'Z');
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 4) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;

@@ -28,10 +28,10 @@ CONF_APPLICATION_VERSION_CODE = "application_version_code"
 # server starts returning 4xx, update these defaults (or override per-entry
 # via the options flow without releasing a new version).
 DEFAULT_HOST = "thegymgroup.netpulse.com"
-DEFAULT_USER_AGENT = "okhttp/3.12.3"
+DEFAULT_USER_AGENT = "okhttp/4.12.0"
 DEFAULT_APPLICATION_NAME = "The Gym Group"
-DEFAULT_APPLICATION_VERSION = "6.10"
-DEFAULT_APPLICATION_VERSION_CODE = "38"
+DEFAULT_APPLICATION_VERSION = "7.4"
+DEFAULT_APPLICATION_VERSION_CODE = "114"
 
 # --- API path templates (the host is supplied at runtime).
 LOGIN_PATH = "/np/exerciser/login"
