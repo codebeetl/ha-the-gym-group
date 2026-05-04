@@ -10,7 +10,7 @@ from homeassistant.const import Platform
 DOMAIN = "the_gym_group"
 
 # The platform we are integrating with (sensor).
-PLATFORMS: list[Platform] = [Platform.SENSOR]
+PLATFORMS: list[Platform] = [Platform.CALENDAR, Platform.SENSOR]
 
 # --- Config entry keys for the configurable transport / app-identity values.
 #

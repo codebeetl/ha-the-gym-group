@@ -152,6 +152,37 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             if ci.get("checkInDate", "") >= recent_cutoff
         ]
 
+        # Full 365-day check-in history for the calendar entity.
+        calendar_checkins: list[dict[str, Any]] = []
+        for ci in check_ins:
+            start_dt = _parse_checkin_dt(ci)
+            if start_dt is None:
+                continue
+            dur_ms: int = ci.get("duration", 0)
+            calendar_checkins.append({
+                "start": start_dt,
+                "end": start_dt + timedelta(milliseconds=dur_ms) if dur_ms else None,
+                "gym_name": ci.get("gymLocationName") or "The Gym Group",
+            })
+
+        # All upcoming non-cancelled booked classes for the calendar entity.
+        calendar_classes: list[dict[str, Any]] = []
+        for item in schedule_raw:
+            brief = item.get("brief", {})
+            if brief.get("cancelled", False):
+                continue
+            start_ms: int = brief.get("startDateTime", 0)
+            end_ms: int = brief.get("endDateTime", 0)
+            if not start_ms:
+                continue
+            instructor_info = brief.get("instructor") or {}
+            calendar_classes.append({
+                "start": datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc),
+                "end": datetime.fromtimestamp(end_ms / 1000, tz=timezone.utc) if end_ms else None,
+                "name": brief.get("name") or "Booked Class",
+                "instructor": instructor_info.get("fullName") or "",
+            })
+
         return {
             "latest_checkin": _parse_checkin_dt(latest_raw),
             "latest_checkin_gym": (
@@ -163,6 +194,8 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
                 else None
             ),
             "checkin_history": recent_checkins,
+            "calendar_checkins": calendar_checkins,
+            "calendar_classes": calendar_classes,
             "monthly_visits": len(monthly),
             "monthly_hours": round(total_ms / 3_600_000, 1),
             "next_class": _find_next_class(schedule_raw),
