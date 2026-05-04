@@ -86,7 +86,7 @@ series:
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
         if (t > now.getTime()) return [];
         var end = t + (h[i].duration_minutes || 60) * 60000;
-        return [[t, 100], [end, 100]];
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -110,7 +110,7 @@ series:
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 1) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
         var end = t + (h[i].duration_minutes || 60) * 60000;
-        return [[t, 100], [end, 100]];
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -134,7 +134,7 @@ series:
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 2) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
         var end = t + (h[i].duration_minutes || 60) * 60000;
-        return [[t, 100], [end, 100]];
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -158,7 +158,7 @@ series:
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 3) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
         var end = t + (h[i].duration_minutes || 60) * 60000;
-        return [[t, 100], [end, 100]];
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -182,7 +182,7 @@ series:
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 4) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
         var end = t + (h[i].duration_minutes || 60) * 60000;
-        return [[t, 100], [end, 100]];
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
