@@ -70,8 +70,9 @@ series:
   - entity: sensor.bury_st_edmunds_last_check_in
     name: Visit (this week)
     color: "#ff8800"
-    opacity: 1.0
-    type: column
+    opacity: 0.4
+    stroke_width: 0
+    type: area
     yaxis_id: people
     data_generator: |
       var h = (entity.attributes && entity.attributes.checkin_history) || [];
@@ -84,7 +85,8 @@ series:
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 0) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
         if (t > now.getTime()) return [];
-        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+        var end = t + (h[i].duration_minutes || 60) * 60000;
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -93,8 +95,9 @@ series:
   - entity: sensor.bury_st_edmunds_last_check_in
     name: Visit (1wk ago)
     color: "#ff8800"
-    opacity: 0.55
-    type: column
+    opacity: 0.25
+    stroke_width: 0
+    type: area
     yaxis_id: people
     data_generator: |
       var h = (entity.attributes && entity.attributes.checkin_history) || [];
@@ -106,8 +109,8 @@ series:
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 1) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
-        if (t > now.getTime()) return [];
-        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+        var end = t + (h[i].duration_minutes || 60) * 60000;
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -116,8 +119,9 @@ series:
   - entity: sensor.bury_st_edmunds_last_check_in
     name: Visit (2wk ago)
     color: "#ff8800"
-    opacity: 0.3
-    type: column
+    opacity: 0.15
+    stroke_width: 0
+    type: area
     yaxis_id: people
     data_generator: |
       var h = (entity.attributes && entity.attributes.checkin_history) || [];
@@ -129,8 +133,8 @@ series:
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 2) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
-        if (t > now.getTime()) return [];
-        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+        var end = t + (h[i].duration_minutes || 60) * 60000;
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -139,8 +143,9 @@ series:
   - entity: sensor.bury_st_edmunds_last_check_in
     name: Visit (3wk ago)
     color: "#ff8800"
-    opacity: 0.15
-    type: column
+    opacity: 0.08
+    stroke_width: 0
+    type: area
     yaxis_id: people
     data_generator: |
       var h = (entity.attributes && entity.attributes.checkin_history) || [];
@@ -152,8 +157,8 @@ series:
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 3) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
-        if (t > now.getTime()) return [];
-        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+        var end = t + (h[i].duration_minutes || 60) * 60000;
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
@@ -162,8 +167,9 @@ series:
   - entity: sensor.bury_st_edmunds_last_check_in
     name: Visit (4wk ago)
     color: "#ff8800"
-    opacity: 0.07
-    type: column
+    opacity: 0.04
+    stroke_width: 0
+    type: area
     yaxis_id: people
     data_generator: |
       var h = (entity.attributes && entity.attributes.checkin_history) || [];
@@ -175,22 +181,14 @@ series:
         if (d.getDay() !== dow) continue;
         if (Math.round((s - new Date(d.getFullYear(), d.getMonth(), d.getDate())) / 604800000) !== 4) continue;
         var t = s.getTime() + d.getHours() * 3600000 + d.getMinutes() * 60000;
-        if (t > now.getTime()) return [];
-        return [[t, Math.min(h[i].duration_minutes || 100, 100)]];
+        var end = t + (h[i].duration_minutes || 60) * 60000;
+        return [[t - 1, 0], [t, 100], [end, 100], [end + 1, 0]];
       }
       return [];
     show:
       legend_value: false
       in_header: false
 apex_config:
-  plotOptions:
-    bar:
-      columnWidth: "3px"
-  tooltip:
-    x:
-      format: HH:mm
-    y:
-      formatter: "[[fn: function(val, opts) { if (opts.seriesIndex < 5) return val + ' people'; var weeksAgo = opts.seriesIndex - 5; var d = new Date(); d.setDate(d.getDate() - weeksAgo * 7); var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat']; var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']; return val + ' min (' + days[d.getDay()] + ' ' + d.getDate() + ' ' + months[d.getMonth()] + ')'; }]]"
   legend:
     show: true
     position: top
