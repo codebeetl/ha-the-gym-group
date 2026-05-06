@@ -39,7 +39,7 @@ def mock_setup_entry() -> Generator[AsyncMock]:
 @pytest.fixture
 async def loaded_entry(hass: HomeAssistant) -> MockConfigEntry:
     """Set up and load the integration; return the config entry."""
-    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG)
+    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, version=2)
     entry.add_to_hass(hass)
     with (
         patch(

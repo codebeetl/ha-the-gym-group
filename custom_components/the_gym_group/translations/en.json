@@ -3,7 +3,7 @@
         "step": {
             "user": {
                 "title": "The Gym Group",
-                "description": "Please enter your login credentials for The Gym Group. The advanced fields below only need changing if the official app version has been bumped and the API starts rejecting requests.",
+                "description": "Please enter your login credentials. Leave the advanced fields blank to use the built-in defaults - only change them if the API starts rejecting requests after an app update.",
                 "data": {
                     "username": "Username (Email)",
                     "password": "Password (PIN)",
@@ -12,6 +12,13 @@
                     "application_name": "Application name",
                     "application_version": "Application version",
                     "application_version_code": "Application version code"
+                },
+                "data_description": {
+                    "host": "Leave blank to use the built-in default.",
+                    "user_agent": "Leave blank to use the built-in default.",
+                    "application_name": "Leave blank to use the built-in default.",
+                    "application_version": "Leave blank to use the built-in default.",
+                    "application_version_code": "Leave blank to use the built-in default."
                 }
             },
             "reauth": {
@@ -37,7 +44,7 @@
         "step": {
             "init": {
                 "title": "Update The Gym Group Configuration",
-                "description": "Update your stored credentials and (optionally) the transport / app-identity fields used to talk to the API.",
+                "description": "Update your stored credentials. Leave the advanced fields blank to use the integration's built-in defaults, which update automatically when a new version ships.",
                 "data": {
                     "username": "Username (Email)",
                     "password": "Password (PIN)",
@@ -46,6 +53,13 @@
                     "application_name": "Application name",
                     "application_version": "Application version",
                     "application_version_code": "Application version code"
+                },
+                "data_description": {
+                    "host": "Leave blank to use the built-in default.",
+                    "user_agent": "Leave blank to use the built-in default.",
+                    "application_name": "Leave blank to use the built-in default.",
+                    "application_version": "Leave blank to use the built-in default.",
+                    "application_version_code": "Leave blank to use the built-in default."
                 }
             }
         },
