@@ -4,10 +4,11 @@
 [![GitHub release](https://img.shields.io/github/v/release/codebeetl/ha-the-gym-group?include_prereleases&sort=semver)](https://github.com/codebeetl/ha-the-gym-group/releases)
 [![License](https://img.shields.io/github/license/codebeetl/ha-the-gym-group)](./LICENSE)
 
-Unofficial Home Assistant integration that exposes live occupancy and open/closed
-status for your home gym on [The Gym Group](https://www.thegymgroup.com/) (UK).
-Poll the mobile app's "gym busyness" endpoint every 5 minutes; drive automations
-off how busy the gym is, or whether it's open.
+Unofficial Home Assistant integration that exposes live occupancy, open/closed
+status, visit history, booked classes, and a calendar for your home gym on
+[The Gym Group](https://www.thegymgroup.com/) (UK). Poll the mobile app's
+endpoints every 5-30 minutes; drive automations off how busy the gym is, or
+whether it's open.
 
 <p align="center"><img src="branding/logo.png" alt="The Gym Group" width="320"></p>
 
@@ -17,10 +18,16 @@ off how busy the gym is, or whether it's open.
 
 - **Live gym population** - current number of people in the gym (`mdi:weight-lifter`).
 - **Gym status** - `open` / `closed` (`mdi:door`).
+- **Monthly visit stats** - visit count and total hours for the current calendar month.
+- **Last check-in** - timestamp, gym name, and duration of your most recent visit.
+- **Next booked class** - name, instructor, available spots, and duration.
+- **Gym calendar** - a full Home Assistant calendar entity showing past visits (up to
+  365 days) and upcoming booked classes, visible on the HA calendar dashboard and
+  usable in time-based automations.
 - **Device triggers** - automate on capacity crossing a threshold, or the gym
   opening/closing.
-- **Extra state attributes** - percentage capacity, recent historical data,
-  and the gym's location name.
+- **Dashboard example** - a ready-to-use [ApexCharts Card](https://github.com/RomRider/apexcharts-card)
+  showing population history and visit duration blocks overlaid on today's axis.
 - **Reauth flow** - when your password changes, Home Assistant prompts you to
   re-enter it rather than silently failing.
 - **Diagnostics** - one-click download of a redacted diagnostics bundle for
@@ -59,8 +66,8 @@ off how busy the gym is, or whether it's open.
 1. In Home Assistant, go to **Settings -> Devices & services -> Add integration**.
 2. Search for **The Gym Group** and select it.
 3. Enter the **email** and **PIN** you use to sign into the mobile app.
-4. The integration logs in, identifies your home gym, and creates a device for
-   it with two sensor entities.
+4. The integration logs in, identifies your home gym, and creates a device with
+   six sensor entities and a calendar entity.
 
 Everything is configured through the UI - there is **no YAML configuration**.
 
@@ -86,10 +93,10 @@ sensible defaults:
 | Field | Default | What it does |
 | --- | --- | --- |
 | **API host** | `thegymgroup.netpulse.com` | The Netpulse host the requests go to. Drives the URL **and** the HTTP `Host` header. |
-| **User-Agent header** | `okhttp/3.12.3` | Sent as `User-Agent`. The official app uses the OkHttp default. |
+| **User-Agent header** | `okhttp/4.12.0` | Sent as `User-Agent`. The official app uses the OkHttp default. |
 | **Application name** | `The Gym Group` | Embedded in the composite `x-np-user-agent` header. |
-| **Application version** | `6.10` | Sent as both `x-np-app-version` and the `applicationVersion=` segment of `x-np-user-agent`. |
-| **Application version code** | `38` | The numeric build code, embedded in `x-np-user-agent`. |
+| **Application version** | `7.4` | Sent as both `x-np-app-version` and the `applicationVersion=` segment of `x-np-user-agent`. |
+| **Application version code** | `114` | The numeric build code, embedded in `x-np-user-agent`. |
 
 Most users should leave these alone. If the integration starts failing all
 requests with 4xx after a Gym Group app update, install the latest official
@@ -100,7 +107,8 @@ that breaks login is caught immediately rather than at the next refresh.
 
 ## Entities provided
 
-One device per configured account, with six sensors across two polling groups.
+One device per configured account, with six sensors and one calendar entity across
+two polling groups.
 
 ### Busyness sensors (updated every 5 minutes)
 
@@ -144,6 +152,23 @@ Additional state attributes on **Next Booked Class**:
 | `instructor` | string | Instructor's full name. |
 | `available_spots` | int | Remaining bookable spots. |
 | `duration_minutes` | int | Class duration in minutes. |
+
+### Calendar entity (updated every 30 minutes)
+
+| Entity | Unique ID | Description |
+| --- | --- | --- |
+| Gym Calendar | `<gymLocationId>_calendar` | A standard HA calendar showing past visits and upcoming booked classes. |
+
+The calendar entity appears on the Home Assistant **Calendar** dashboard alongside
+your other calendars, and is available in the **When a calendar event starts/ends**
+automation trigger.
+
+**Past visits** - every check-in from the past 365 days appears as an all-day or
+timed event (duration taken from the API where available, falling back to one hour).
+The event summary is `"Gym Visit"` and the location is the gym name.
+
+**Upcoming booked classes** - non-cancelled classes from your booked schedule appear
+with the class name as the summary and the instructor's name as the description.
 
 ## Device automations
 
@@ -218,9 +243,10 @@ configuration that shows:
 - **The same weekday for the last four weeks** as progressively transparent area
   fills, giving a visual sense of how busy the gym typically is at each time of
   day.
-- **Visit markers** - one orange column per visit in the last 35 days, projected
-  onto today's time axis. Column height represents visit duration in minutes.
-  The tooltip shows visit time and duration.
+- **Visit duration blocks** - one orange area block per visit in the last 35 days,
+  projected onto today's time axis. The block spans from check-in to check-out,
+  so you can see exactly when you visited and how long you stayed, aligned with
+  the population curve.
 
 > **Recorder retention** - the four-week history requires at least 35 days of
 > HA history. Add this to `configuration.yaml` and restart, then wait for the
@@ -299,8 +325,9 @@ ha-the-gym-group/
 |-- custom_components/the_gym_group/   Integration package
 |   |-- __init__.py                    Entry point (setup/unload)
 |   |-- api.py                         Thin HTTP client for the Netpulse API
+|   |-- calendar.py                    Calendar entity (visits + booked classes)
 |   |-- config_flow.py                 UI setup, reauth, options
-|   |-- coordinator.py                 DataUpdateCoordinator (polling)
+|   |-- coordinator.py                 DataUpdateCoordinators (busyness + activity)
 |   |-- sensor.py                      All six sensor entities
 |   |-- device_trigger.py              Capacity / status device triggers
 |   |-- diagnostics.py                 Redacted diagnostics bundle
