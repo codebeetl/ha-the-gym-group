@@ -14,11 +14,11 @@
                     "application_version_code": "Application version code"
                 },
                 "data_description": {
-                    "host": "Leave blank to use the built-in default.",
-                    "user_agent": "Leave blank to use the built-in default.",
-                    "application_name": "Leave blank to use the built-in default.",
-                    "application_version": "Leave blank to use the built-in default.",
-                    "application_version_code": "Leave blank to use the built-in default."
+                    "host": "Leave blank to use the built-in default ({default_host}).",
+                    "user_agent": "Leave blank to use the built-in default ({default_user_agent}).",
+                    "application_name": "Leave blank to use the built-in default ({default_application_name}).",
+                    "application_version": "Leave blank to use the built-in default ({default_application_version}).",
+                    "application_version_code": "Leave blank to use the built-in default ({default_application_version_code})."
                 }
             },
             "reauth": {
@@ -55,11 +55,11 @@
                     "application_version_code": "Application version code"
                 },
                 "data_description": {
-                    "host": "Leave blank to use the built-in default.",
-                    "user_agent": "Leave blank to use the built-in default.",
-                    "application_name": "Leave blank to use the built-in default.",
-                    "application_version": "Leave blank to use the built-in default.",
-                    "application_version_code": "Leave blank to use the built-in default."
+                    "host": "Leave blank to use the built-in default ({default_host}).",
+                    "user_agent": "Leave blank to use the built-in default ({default_user_agent}).",
+                    "application_name": "Leave blank to use the built-in default ({default_application_name}).",
+                    "application_version": "Leave blank to use the built-in default ({default_application_version}).",
+                    "application_version_code": "Leave blank to use the built-in default ({default_application_version_code})."
                 }
             }
         },

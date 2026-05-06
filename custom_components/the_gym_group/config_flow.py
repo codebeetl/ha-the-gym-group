@@ -52,6 +52,17 @@ _ADV_CONF_KEYS = frozenset({
     CONF_APPLICATION_VERSION_CODE,
 })
 
+# Passed as description_placeholders to every form that shows advanced fields
+# so that data_description strings in translations can reference the current
+# built-in defaults without duplicating the values in the translation file.
+_ADV_DEFAULTS_PLACEHOLDERS: dict[str, str] = {
+    "default_host": DEFAULT_HOST,
+    "default_user_agent": DEFAULT_USER_AGENT,
+    "default_application_name": DEFAULT_APPLICATION_NAME,
+    "default_application_version": DEFAULT_APPLICATION_VERSION,
+    "default_application_version_code": DEFAULT_APPLICATION_VERSION_CODE,
+}
+
 
 def _clean_advanced(data: dict[str, Any]) -> dict[str, Any]:
     """Drop advanced transport fields with empty/blank values.
@@ -197,6 +208,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         return self.async_show_form(
             step_id="user",
             data_schema=_credentials_schema(user_input or {}),
+            description_placeholders=_ADV_DEFAULTS_PLACEHOLDERS,
             errors=errors,
         )
 
@@ -307,5 +319,6 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
         return self.async_show_form(
             step_id="init",
             data_schema=_credentials_schema(defaults),
+            description_placeholders=_ADV_DEFAULTS_PLACEHOLDERS,
             errors=errors,
         )
