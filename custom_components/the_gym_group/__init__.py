@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
+
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+
+_LOGGER = logging.getLogger(__name__)
 
 from .api import TheGymGroupApiClient
 from .const import (
@@ -23,6 +27,39 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCoordinator
+
+
+async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
+    """Migrate config entries to the current schema version.
+
+    V1 -> V2: strip the five advanced transport fields from entry.data so they
+    fall back to the built-in DEFAULT_* constants at runtime. This is a
+    breaking change documented in the v1.3.0 release notes: any genuine
+    non-default overrides must be re-entered via Configure after upgrading.
+    """
+    if config_entry.version == 1:
+        _LOGGER.debug("Migrating %s config entry from version 1 to 2", DOMAIN)
+        new_data = {
+            k: v
+            for k, v in config_entry.data.items()
+            if k
+            not in {
+                CONF_HOST,
+                CONF_USER_AGENT,
+                CONF_APPLICATION_NAME,
+                CONF_APPLICATION_VERSION,
+                CONF_APPLICATION_VERSION_CODE,
+            }
+        }
+        hass.config_entries.async_update_entry(
+            config_entry, data=new_data, version=2
+        )
+        _LOGGER.info(
+            "Migrated %s config entry to version 2: advanced transport fields "
+            "now use built-in defaults unless explicitly overridden",
+            DOMAIN,
+        )
+    return True
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:

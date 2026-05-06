@@ -43,6 +43,29 @@ _PASSWORD_SELECTOR = selector.TextSelector(
     selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
 )
 
+# The five transport/app-identity fields that are optional overrides.
+_ADV_CONF_KEYS = frozenset({
+    CONF_HOST,
+    CONF_USER_AGENT,
+    CONF_APPLICATION_NAME,
+    CONF_APPLICATION_VERSION,
+    CONF_APPLICATION_VERSION_CODE,
+})
+
+
+def _clean_advanced(data: dict[str, Any]) -> dict[str, Any]:
+    """Drop advanced transport fields with empty/blank values.
+
+    An empty field means "use the code default at runtime". Removing the key
+    from stored data lets async_setup_entry fall back to the current DEFAULT_*
+    constants, so updated defaults are picked up automatically on next HA start.
+    """
+    return {
+        k: v
+        for k, v in data.items()
+        if k not in _ADV_CONF_KEYS or (isinstance(v, str) and v.strip())
+    }
+
 
 def _credentials_schema(
     defaults: Mapping[str, Any],
@@ -51,8 +74,9 @@ def _credentials_schema(
 ) -> vol.Schema:
     """Build the schema used by both the user and options flows.
 
-    ``defaults`` is consulted for pre-fill values for every field. Falls back
-    to the module-level DEFAULT_* constants when a key is missing.
+    Advanced transport fields use ``suggested_value`` (not ``default``) so that
+    clearing a field submits an empty string, which ``_clean_advanced`` then
+    strips before saving. A placeholder shows the built-in default as hint text.
     """
     schema: dict[Any, Any] = {}
 
@@ -64,31 +88,37 @@ def _credentials_schema(
     schema[vol.Required(CONF_PASSWORD)] = _PASSWORD_SELECTOR
 
     schema[
-        vol.Optional(CONF_HOST, default=defaults.get(CONF_HOST, DEFAULT_HOST))
+        vol.Optional(
+            CONF_HOST,
+            description={"suggested_value": defaults.get(CONF_HOST) or ""},
+        )
     ] = str
     schema[
         vol.Optional(
-            CONF_USER_AGENT, default=defaults.get(CONF_USER_AGENT, DEFAULT_USER_AGENT)
+            CONF_USER_AGENT,
+            description={"suggested_value": defaults.get(CONF_USER_AGENT) or ""},
         )
     ] = str
     schema[
         vol.Optional(
             CONF_APPLICATION_NAME,
-            default=defaults.get(CONF_APPLICATION_NAME, DEFAULT_APPLICATION_NAME),
+            description={"suggested_value": defaults.get(CONF_APPLICATION_NAME) or ""},
         )
     ] = str
     schema[
         vol.Optional(
             CONF_APPLICATION_VERSION,
-            default=defaults.get(CONF_APPLICATION_VERSION, DEFAULT_APPLICATION_VERSION),
+            description={
+                "suggested_value": defaults.get(CONF_APPLICATION_VERSION) or ""
+            },
         )
     ] = str
     schema[
         vol.Optional(
             CONF_APPLICATION_VERSION_CODE,
-            default=defaults.get(
-                CONF_APPLICATION_VERSION_CODE, DEFAULT_APPLICATION_VERSION_CODE
-            ),
+            description={
+                "suggested_value": defaults.get(CONF_APPLICATION_VERSION_CODE) or ""
+            },
         )
     ] = str
 
@@ -130,7 +160,7 @@ async def _try_login(
 class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for The Gym Group."""
 
-    VERSION = 1
+    VERSION = 2
 
     @staticmethod
     @callback
@@ -147,8 +177,9 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            cleaned = _clean_advanced(user_input)
             try:
-                client = await _try_login(self.hass, user_input)
+                client = await _try_login(self.hass, cleaned)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -160,7 +191,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 await self.async_set_unique_id(client.user_id)
                 self._abort_if_unique_id_configured()
                 return self.async_create_entry(
-                    title=user_input[CONF_USERNAME], data=user_input
+                    title=cleaned[CONF_USERNAME], data=cleaned
                 )
 
         return self.async_show_form(
@@ -236,8 +267,9 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
         errors: dict[str, str] = {}
 
         if user_input is not None:
+            cleaned = _clean_advanced(user_input)
             try:
-                client = await _try_login(self.hass, user_input)
+                client = await _try_login(self.hass, cleaned)
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -246,7 +278,15 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                 _LOGGER.exception("Unexpected exception during reconfigure")
                 errors["base"] = "unknown"
             else:
-                new_data = {**self.config_entry.data, **user_input}
+                # Strip all advanced keys from stored data first so that a
+                # user who clears a field removes its override rather than
+                # leaving the old value from entry.data in place.
+                base = {
+                    k: v
+                    for k, v in self.config_entry.data.items()
+                    if k not in _ADV_CONF_KEYS
+                }
+                new_data = {**base, **cleaned}
 
                 # If the username now maps to a different account, keep the
                 # unique_id in sync so HA can still detect duplicates.
