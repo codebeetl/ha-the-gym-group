@@ -5,11 +5,10 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.diagnostics import async_redact_data
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 
-from .const import DOMAIN
+from . import TheGymGroupConfigEntry
 
 # entry_id, created_at and modified_at are redacted because they are
 # non-deterministic and would make snapshot tests unreliable.
@@ -17,13 +16,13 @@ TO_REDACT = {CONF_USERNAME, CONF_PASSWORD, "entry_id", "created_at", "modified_a
 
 
 async def async_get_config_entry_diagnostics(
-    hass: HomeAssistant, entry: ConfigEntry
+    hass: HomeAssistant, entry: TheGymGroupConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
+    runtime_data = entry.runtime_data
 
     return {
         "config_entry": async_redact_data(entry.as_dict(), TO_REDACT),
-        "busyness_data": entry_data["busyness"].data or {},
-        "activity_data": entry_data["activity"].data or {},
+        "busyness_data": runtime_data.busyness.data or {},
+        "activity_data": runtime_data.activity.data or {},
     }

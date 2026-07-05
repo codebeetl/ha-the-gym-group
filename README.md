@@ -35,7 +35,7 @@ whether it's open.
 
 ## Requirements
 
-- Home Assistant **2024.11.0** or newer.
+- Home Assistant **2026.3.0** or newer.
 - An account with [The Gym Group](https://www.thegymgroup.com/) (email +
   numeric PIN that you use to sign into the app).
 - HACS installed, or willingness to copy files manually.

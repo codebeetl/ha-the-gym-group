@@ -6,25 +6,25 @@ from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
+from . import TheGymGroupConfigEntry
 from .const import DOMAIN
 from .coordinator import TheGymGroupActivityCoordinator
 
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    entry: TheGymGroupConfigEntry,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the calendar platform."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    activity_coordinator: TheGymGroupActivityCoordinator = entry_data["activity"]
-    busyness_data = entry_data["busyness"].data or {}
+    runtime_data = entry.runtime_data
+    activity_coordinator = runtime_data.activity
+    busyness_data = runtime_data.busyness.data or {}
     device_id = str(busyness_data.get("gymLocationId") or entry.entry_id)
     gym_name = busyness_data.get("gymLocationName", "The Gym Group")
 
@@ -73,7 +73,7 @@ class TheGymGroupCalendarEntity(
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:

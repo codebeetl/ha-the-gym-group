@@ -6,7 +6,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 **Install dependencies:**
 ```bash
-pip install pytest pytest-homeassistant-custom-component
+pip install -r requirements_test.txt
 ```
 
 **Run tests:**
@@ -102,9 +102,18 @@ The `test_full_user_flow_success` test always shows a teardown ERROR (lingering 
 `_run_safe_shutdown_loop` thread). This is a phcc/aiohttp version mismatch, not a code
 defect; the test itself PASSES.
 
+## CI
+
+- **`.github/workflows/test.yml`** - runs `pytest tests/` on push/PR to main, on Python
+  3.12 and 3.13, installing from `requirements_test.txt`.
+- **`.github/workflows/validate.yml`** - runs `hacs/action` (category `integration`) and
+  `home-assistant/actions/hassfest` on push/PR to main, daily, and on manual dispatch.
+
 ## Key constraints
 
-- Minimum HA version: **2024.11.0** (declared in `hacs.json` and `manifest.json`).
+- Minimum HA version: **2026.3.0** (declared in `hacs.json`). This is also the version that
+  introduced the Brands Proxy API, which is why `custom_components/the_gym_group/brand/`
+  works without any extra manifest configuration.
 - The integration is `iot_class: cloud_polling` with no local device; all data comes from
   `thegymgroup.netpulse.com` over HTTPS.
 - Config entry `unique_id` is the Netpulse user UUID - changing accounts via the options
