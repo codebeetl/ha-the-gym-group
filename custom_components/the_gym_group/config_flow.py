@@ -222,10 +222,7 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
         the password is collected - the advanced fields stay as configured.
         """
         errors: dict[str, str] = {}
-        try:
-            entry = self._reauth_entry()
-        except ValueError:
-            return self.async_abort(reason="unknown")
+        entry = self._get_reauth_entry()
 
         if user_input is not None:
             password = user_input[CONF_PASSWORD]
@@ -242,9 +239,12 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 _LOGGER.exception("Unexpected exception during reauth")
                 errors["base"] = "unknown"
             else:
-                new_data = {**entry.data, CONF_PASSWORD: password}
-                self.hass.config_entries.async_update_entry(entry, data=new_data)
-                await self.hass.config_entries.async_reload(entry.entry_id)
+                # Update only - reload happens via the update_listener
+                # registered in async_setup_entry. Calling a reload helper
+                # here too would reload the entry twice.
+                self.hass.config_entries.async_update_entry(
+                    entry, data={**entry.data, CONF_PASSWORD: password}
+                )
                 return self.async_abort(reason="reauth_successful")
 
         return self.async_show_form(
@@ -255,14 +255,6 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             description_placeholders={"username": entry.data[CONF_USERNAME]},
             errors=errors,
         )
-
-    def _reauth_entry(self) -> ConfigEntry:
-        """Return the config entry being reauthenticated."""
-        entry_id = self.context["entry_id"]
-        entry = self.hass.config_entries.async_get_entry(entry_id)
-        if entry is None:
-            raise ValueError(f"Reauth entry {entry_id} not found")
-        return entry
 
 
 class TheGymGroupOptionsFlow(config_entries.OptionsFlow):

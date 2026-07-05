@@ -21,14 +21,18 @@ _LOGGER = logging.getLogger(__name__)
 class TheGymGroupDataUpdateCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Class to manage fetching busyness data from the API."""
 
-    config_entry: ConfigEntry
-
-    def __init__(self, hass: HomeAssistant, api_client: TheGymGroupApiClient) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        api_client: TheGymGroupApiClient,
+    ) -> None:
         """Initialize."""
         self.api_client = api_client
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=DOMAIN,
             update_interval=SCAN_INTERVAL,
         )
@@ -94,14 +98,18 @@ def _find_next_class(schedule: list[dict[str, Any]]) -> dict[str, Any] | None:
 class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     """Coordinator for activity data: check-in history and booked schedule."""
 
-    config_entry: ConfigEntry
-
-    def __init__(self, hass: HomeAssistant, api_client: TheGymGroupApiClient) -> None:
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        config_entry: ConfigEntry,
+        api_client: TheGymGroupApiClient,
+    ) -> None:
         """Initialize."""
         self.api_client = api_client
         super().__init__(
             hass,
             _LOGGER,
+            config_entry=config_entry,
             name=f"{DOMAIN}_activity",
             update_interval=ACTIVITY_SCAN_INTERVAL,
         )

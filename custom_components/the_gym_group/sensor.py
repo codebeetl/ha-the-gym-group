@@ -10,13 +10,13 @@ from homeassistant.components.sensor import (
     SensorEntity,
     SensorStateClass,
 )
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
+from . import TheGymGroupConfigEntry
 from .const import (
     BUSYNESS_TRANSLATION_KEY,
     DOMAIN,
@@ -32,13 +32,13 @@ from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCo
 
 async def async_setup_entry(
     hass: HomeAssistant,
-    entry: ConfigEntry,
+    entry: TheGymGroupConfigEntry,
     async_add_entities: AddEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
-    entry_data = hass.data[DOMAIN][entry.entry_id]
-    busyness_coordinator: TheGymGroupDataUpdateCoordinator = entry_data["busyness"]
-    activity_coordinator: TheGymGroupActivityCoordinator = entry_data["activity"]
+    runtime_data = entry.runtime_data
+    busyness_coordinator = runtime_data.busyness
+    activity_coordinator = runtime_data.activity
 
     # Resolve device identity once from the busyness coordinator (already refreshed).
     busyness_data = busyness_coordinator.data or {}
@@ -75,14 +75,14 @@ class _TheGymGroupBaseSensor(
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, Any]],
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         unique_suffix: str,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the base sensor."""
         super().__init__(coordinator)
-        self.config_entry: ConfigEntry = config_entry
+        self.config_entry: TheGymGroupConfigEntry = config_entry
         self._device_id = device_id
         self._gym_name = gym_name
         self._attr_unique_id = f"{device_id}_{unique_suffix}"
@@ -109,7 +109,7 @@ class TheGymGroupBusynessSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupDataUpdateCoordinator,
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
@@ -151,7 +151,7 @@ class TheGymGroupStatusSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupDataUpdateCoordinator,
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
@@ -175,7 +175,7 @@ class TheGymGroupLastCheckinSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
@@ -211,7 +211,7 @@ class TheGymGroupMonthlyVisitsSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
@@ -240,7 +240,7 @@ class TheGymGroupMonthlyTimeSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
@@ -266,7 +266,7 @@ class TheGymGroupNextClassSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: ConfigEntry,
+        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:

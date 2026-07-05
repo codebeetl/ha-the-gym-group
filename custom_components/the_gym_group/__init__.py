@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import dataclass
 import logging
 
 from homeassistant.config_entries import ConfigEntry
@@ -27,6 +28,17 @@ from .const import (
     PLATFORMS,
 )
 from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCoordinator
+
+
+@dataclass
+class TheGymGroupRuntimeData:
+    """Data stored on the config entry at runtime."""
+
+    busyness: TheGymGroupDataUpdateCoordinator
+    activity: TheGymGroupActivityCoordinator
+
+
+type TheGymGroupConfigEntry = ConfigEntry[TheGymGroupRuntimeData]
 
 
 async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) -> bool:
@@ -62,10 +74,8 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_setup_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) -> bool:
     """Set up The Gym Group from a config entry."""
-    hass.data.setdefault(DOMAIN, {})
-
     session = async_get_clientsession(hass)
 
     # Pull the configurable transport / app-identity values from the entry,
@@ -89,16 +99,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         ),
     )
 
-    coordinator = TheGymGroupDataUpdateCoordinator(hass, api_client=api_client)
+    coordinator = TheGymGroupDataUpdateCoordinator(
+        hass, config_entry=entry, api_client=api_client
+    )
     await coordinator.async_config_entry_first_refresh()
 
-    activity_coordinator = TheGymGroupActivityCoordinator(hass, api_client=api_client)
+    activity_coordinator = TheGymGroupActivityCoordinator(
+        hass, config_entry=entry, api_client=api_client
+    )
     await activity_coordinator.async_config_entry_first_refresh()
 
-    hass.data[DOMAIN][entry.entry_id] = {
-        "busyness": coordinator,
-        "activity": activity_coordinator,
-    }
+    entry.runtime_data = TheGymGroupRuntimeData(
+        busyness=coordinator, activity=activity_coordinator
+    )
 
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
@@ -107,14 +120,11 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return True
 
 
-async def update_listener(hass: HomeAssistant, entry: ConfigEntry) -> None:
+async def update_listener(hass: HomeAssistant, entry: TheGymGroupConfigEntry) -> None:
     """Handle options update by reloading the entry."""
     await hass.config_entries.async_reload(entry.entry_id)
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) -> bool:
     """Unload a config entry."""
-    unload_ok = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
-    if unload_ok:
-        hass.data.get(DOMAIN, {}).pop(entry.entry_id, None)
-    return unload_ok
+    return await hass.config_entries.async_unload_platforms(entry, PLATFORMS)

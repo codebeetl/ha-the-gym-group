@@ -134,14 +134,35 @@ async def test_user_flow_already_configured(hass: HomeAssistant) -> None:
     assert result2["reason"] == "already_configured"
 
 
-async def test_reauth_flow_success(
-    hass: HomeAssistant, mock_setup_entry: AsyncMock
-) -> None:
-    """Test the re-authentication flow succeeds."""
+async def test_reauth_flow_success(hass: HomeAssistant) -> None:
+    """Test the re-authentication flow succeeds.
+
+    The entry is fully loaded (not just added to hass) so that the real
+    ``update_listener`` from ``async_setup_entry`` is registered - reload is
+    expected to happen exactly once, via that listener, not via an explicit
+    reload call in the reauth step (which would double-reload).
+    """
     mock_entry = MockConfigEntry(
-        domain=DOMAIN, data=MOCK_CONFIG, unique_id=MOCK_USER_ID
+        domain=DOMAIN, data=MOCK_CONFIG, unique_id=MOCK_USER_ID, version=2
     )
     mock_entry.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
+            return_value=MOCK_API_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_checkin_history",
+            return_value=MOCK_CHECKIN_HISTORY_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_schedule",
+            return_value=MOCK_SCHEDULE_DATA,
+        ),
+    ):
+        await hass.config_entries.async_setup(mock_entry.entry_id)
+        await hass.async_block_till_done()
 
     result = await hass.config_entries.flow.async_init(
         DOMAIN, context={"source": SOURCE_REAUTH, "entry_id": mock_entry.entry_id}
