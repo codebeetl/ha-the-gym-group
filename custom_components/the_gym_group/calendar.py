@@ -8,7 +8,7 @@ from typing import Any
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import TheGymGroupConfigEntry
@@ -19,7 +19,7 @@ from .coordinator import TheGymGroupActivityCoordinator
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TheGymGroupConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the calendar platform."""
     runtime_data = entry.runtime_data

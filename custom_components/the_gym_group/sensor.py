@@ -13,7 +13,7 @@ from homeassistant.components.sensor import (
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceInfo
-from homeassistant.helpers.entity_platform import AddEntitiesCallback
+from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from . import TheGymGroupConfigEntry
@@ -33,7 +33,7 @@ from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCo
 async def async_setup_entry(
     hass: HomeAssistant,
     entry: TheGymGroupConfigEntry,
-    async_add_entities: AddEntitiesCallback,
+    async_add_entities: AddConfigEntryEntitiesCallback,
 ) -> None:
     """Set up the sensor platform."""
     runtime_data = entry.runtime_data
