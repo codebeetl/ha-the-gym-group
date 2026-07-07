@@ -30,8 +30,8 @@ CONF_APPLICATION_VERSION_CODE = "application_version_code"
 DEFAULT_HOST = "thegymgroup.netpulse.com"
 DEFAULT_USER_AGENT = "okhttp/4.12.0"
 DEFAULT_APPLICATION_NAME = "The Gym Group"
-DEFAULT_APPLICATION_VERSION = "7.4"
-DEFAULT_APPLICATION_VERSION_CODE = "114"
+DEFAULT_APPLICATION_VERSION = "7.7"
+DEFAULT_APPLICATION_VERSION_CODE = "121"
 
 # --- API path templates (the host is supplied at runtime).
 LOGIN_PATH = "/np/exerciser/login"
