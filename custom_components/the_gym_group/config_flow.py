@@ -282,27 +282,39 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                 _LOGGER.exception("Unexpected exception during reconfigure")
                 errors["base"] = "unknown"
             else:
-                # Strip all advanced keys from stored data first so that a
-                # user who clears a field removes its override rather than
-                # leaving the old value from entry.data in place.
-                base = {
-                    k: v
-                    for k, v in self.config_entry.data.items()
-                    if k not in _ADV_CONF_KEYS
-                }
-                new_data = {**base, **cleaned}
-
                 # If the username now maps to a different account, keep the
-                # unique_id in sync so HA can still detect duplicates.
-                update_kwargs: dict[str, Any] = {"data": new_data}
+                # unique_id in sync so HA can still detect duplicates - but
+                # first check no other entry already owns that account.
+                new_unique_id: str | None = None
                 if client.user_id and client.user_id != self.config_entry.unique_id:
-                    update_kwargs["unique_id"] = client.user_id
+                    existing = self.hass.config_entries.async_entry_for_domain_unique_id(
+                        DOMAIN, client.user_id
+                    )
+                    if existing is not None and existing.entry_id != self.config_entry.entry_id:
+                        errors["base"] = "already_configured"
+                    else:
+                        new_unique_id = client.user_id
 
-                self.hass.config_entries.async_update_entry(
-                    self.config_entry, **update_kwargs
-                )
-                # The update_listener in __init__.py will reload the entry.
-                return self.async_create_entry(title="", data={})
+                if not errors:
+                    # Strip all advanced keys from stored data first so that
+                    # a user who clears a field removes its override rather
+                    # than leaving the old value from entry.data in place.
+                    base = {
+                        k: v
+                        for k, v in self.config_entry.data.items()
+                        if k not in _ADV_CONF_KEYS
+                    }
+                    new_data = {**base, **cleaned}
+
+                    update_kwargs: dict[str, Any] = {"data": new_data}
+                    if new_unique_id is not None:
+                        update_kwargs["unique_id"] = new_unique_id
+
+                    self.hass.config_entries.async_update_entry(
+                        self.config_entry, **update_kwargs
+                    )
+                    # The update_listener in __init__.py will reload the entry.
+                    return self.async_create_entry(title="", data={})
 
         # Pre-fill from the current entry, with the in-flight user_input
         # taking precedence so users see what they just typed on validation

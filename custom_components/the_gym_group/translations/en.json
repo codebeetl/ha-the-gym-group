@@ -66,6 +66,7 @@
         "error": {
             "cannot_connect": "Failed to connect to The Gym Group API.",
             "invalid_auth": "Invalid username or password.",
+            "already_configured": "This account is already configured on another entry.",
             "unknown": "An unknown error occurred. Please check the logs."
         }
     },
