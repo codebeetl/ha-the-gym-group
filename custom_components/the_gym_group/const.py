@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from datetime import timedelta
 
 from homeassistant.const import Platform
@@ -28,6 +29,25 @@ CONF_APPLICATION_VERSION_CODE = "application_version_code"
 # server starts returning 4xx, update these defaults (or override per-entry
 # via the options flow without releasing a new version).
 DEFAULT_HOST = "thegymgroup.netpulse.com"
+
+# Credentials are posted in plaintext to whatever host is configured, so a
+# bare hostname isn't enough - it must also live under the API provider's own
+# domain. Enforced both when the host is saved (config_flow) and every time
+# it's read back out for a live setup (async_setup_entry), since a stored
+# entry can predate this check or be edited outside the options flow.
+_HOST_RE = re.compile(
+    r"^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
+ALLOWED_HOST_DOMAIN = "netpulse.com"
+
+
+def is_valid_host(host: str) -> bool:
+    """Return True if host is a bare hostname under the allowed domain."""
+    if not host or not _HOST_RE.match(host):
+        return False
+    host = host.lower()
+    return host == ALLOWED_HOST_DOMAIN or host.endswith(f".{ALLOWED_HOST_DOMAIN}")
 DEFAULT_USER_AGENT = "okhttp/4.12.0"
 DEFAULT_APPLICATION_NAME = "The Gym Group"
 DEFAULT_APPLICATION_VERSION = "7.7"

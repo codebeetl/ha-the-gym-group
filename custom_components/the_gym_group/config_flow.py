@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import logging
-import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -29,6 +28,7 @@ from .const import (
     DEFAULT_HOST,
     DEFAULT_USER_AGENT,
     DOMAIN,
+    is_valid_host,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -55,25 +55,6 @@ _ADV_CONF_KEYS = frozenset({
 
 class _InvalidHost(Exception):
     """Raised when the configured host isn't an allowed Netpulse domain."""
-
-
-# Credentials are posted in plaintext to whatever host is configured, so a
-# bare hostname isn't enough - it must also live under the API provider's own
-# domain, otherwise the advanced override field could be used (accidentally
-# or otherwise) to send a plaintext username/password to an arbitrary host.
-_HOST_RE = re.compile(
-    r"^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
-    r"(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
-)
-_ALLOWED_HOST_DOMAIN = "netpulse.com"
-
-
-def _is_valid_host(host: str) -> bool:
-    """Return True if host is a bare hostname under the allowed domain."""
-    if not host or not _HOST_RE.match(host):
-        return False
-    host = host.lower()
-    return host == _ALLOWED_HOST_DOMAIN or host.endswith(f".{_ALLOWED_HOST_DOMAIN}")
 
 
 # Passed as description_placeholders to every form that shows advanced fields
@@ -174,7 +155,7 @@ async def _try_login(
         CannotConnect: transport / server error.
     """
     host = user_input.get(CONF_HOST, DEFAULT_HOST)
-    if not _is_valid_host(host):
+    if not is_valid_host(host):
         raise _InvalidHost(f"Host not allowed: {host}")
 
     client = TheGymGroupApiClient(

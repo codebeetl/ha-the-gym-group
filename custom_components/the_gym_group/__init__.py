@@ -8,6 +8,7 @@ import logging
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
+from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
@@ -26,6 +27,7 @@ from .const import (
     DEFAULT_USER_AGENT,
     DOMAIN,
     PLATFORMS,
+    is_valid_host,
 )
 from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCoordinator
 
@@ -81,12 +83,19 @@ async def async_setup_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) 
     # Pull the configurable transport / app-identity values from the entry,
     # falling back to defaults so entries created before these fields existed
     # continue to work without a migration.
+    host = entry.data.get(CONF_HOST, DEFAULT_HOST)
+    if not is_valid_host(host):
+        # Re-checked here (not just in config_flow) because a stored entry
+        # can predate this validation or be edited outside the options flow -
+        # credentials must never be posted to an unvalidated host.
+        raise ConfigEntryError(f"Configured host '{host}' is not an allowed domain")
+
     api_client = TheGymGroupApiClient(
         entry.data[CONF_USERNAME],
         entry.data[CONF_PASSWORD],
         session,
         user_id=entry.unique_id or "",
-        host=entry.data.get(CONF_HOST, DEFAULT_HOST),
+        host=host,
         user_agent=entry.data.get(CONF_USER_AGENT, DEFAULT_USER_AGENT),
         application_name=entry.data.get(
             CONF_APPLICATION_NAME, DEFAULT_APPLICATION_NAME
