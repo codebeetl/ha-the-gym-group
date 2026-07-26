@@ -8,8 +8,15 @@ from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from homeassistant.config_entries import ConfigEntryState
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 
-from .const import MOCK_CONFIG
+from .const import (
+    MOCK_API_DATA,
+    MOCK_CHECKIN_HISTORY_DATA,
+    MOCK_CONFIG,
+    MOCK_GYM_ID,
+    MOCK_SCHEDULE_DATA,
+)
 
 
 async def test_setup_unload_and_reload_entry(
@@ -85,3 +92,57 @@ async def test_setup_entry_rejects_stored_host_outside_allowed_domain(
 
     assert entry.state is ConfigEntryState.SETUP_ERROR
     mock_login.assert_not_called()
+
+
+async def test_setup_migrates_registry_ids_from_gym_location_id_to_entry_id(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+    entity_registry: er.EntityRegistry,
+) -> None:
+    """Entities/device registered under the old gymLocationId-based unique_id
+
+    scheme are renamed to the current entry-scoped scheme on setup, so
+    existing installs keep their entity_id, history, and automations instead
+    of getting a duplicate new device.
+    """
+    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, version=2)
+    entry.add_to_hass(hass)
+
+    old_device_id = MOCK_GYM_ID
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, old_device_id)},
+    )
+    old_entity = entity_registry.async_get_or_create(
+        "sensor",
+        DOMAIN,
+        f"{old_device_id}_busyness",
+        device_id=device.id,
+        config_entry=entry,
+    )
+
+    with (
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
+            return_value=MOCK_API_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_checkin_history",
+            return_value=MOCK_CHECKIN_HISTORY_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_schedule",
+            return_value=MOCK_SCHEDULE_DATA,
+        ),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    migrated_entity = entity_registry.async_get(old_entity.entity_id)
+    assert migrated_entity is not None
+    assert migrated_entity.unique_id == f"{entry.entry_id}_busyness"
+
+    migrated_device = device_registry.async_get(device.id)
+    assert migrated_device is not None
+    assert (DOMAIN, entry.entry_id) in migrated_device.identifiers
+    assert (DOMAIN, old_device_id) not in migrated_device.identifiers

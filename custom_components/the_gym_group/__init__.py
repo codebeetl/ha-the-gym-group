@@ -9,6 +9,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
+from homeassistant.helpers import device_registry as dr, entity_registry as er
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 _LOGGER = logging.getLogger(__name__)
@@ -61,6 +62,44 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     return True
 
 
+def _migrate_registry_ids(
+    hass: HomeAssistant, entry: TheGymGroupConfigEntry, old_device_id: str
+) -> None:
+    """Rename registry entries from the old gymLocationId-based device_id to
+
+    the current entry-scoped one, so an existing install keeps its entity_id,
+    history, and automations instead of getting an orphaned old device and a
+    duplicate new one.
+    """
+    if old_device_id == entry.entry_id:
+        return  # device_id was already entry-scoped - nothing to migrate
+
+    device_registry = dr.async_get(hass)
+    old_device = device_registry.async_get_device(identifiers={(DOMAIN, old_device_id)})
+    if old_device is None:
+        return  # already migrated, or a fresh install
+
+    entity_registry = er.async_get(hass)
+    prefix = f"{old_device_id}_"
+    for reg_entry in er.async_entries_for_device(
+        entity_registry, old_device.id, include_disabled_entities=True
+    ):
+        if not reg_entry.unique_id.startswith(prefix):
+            continue
+        suffix = reg_entry.unique_id[len(prefix) :]
+        entity_registry.async_update_entity(
+            reg_entry.entity_id, new_unique_id=f"{entry.entry_id}_{suffix}"
+        )
+
+    device_registry.async_update_device(
+        old_device.id, new_identifiers={(DOMAIN, entry.entry_id)}
+    )
+    _LOGGER.info(
+        "Migrated %s device/entities from gymLocationId-based IDs to entry-scoped IDs",
+        DOMAIN,
+    )
+
+
 async def async_setup_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) -> bool:
     """Set up The Gym Group from a config entry."""
     session = async_get_clientsession(hass)
@@ -92,6 +131,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) 
         hass, config_entry=entry, api_client=api_client
     )
     await coordinator.async_config_entry_first_refresh()
+
+    old_device_id = str((coordinator.data or {}).get("gymLocationId") or entry.entry_id)
+    _migrate_registry_ids(hass, entry, old_device_id)
 
     activity_coordinator = TheGymGroupActivityCoordinator(
         hass, config_entry=entry, api_client=api_client
