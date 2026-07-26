@@ -6,6 +6,7 @@ from zoneinfo import ZoneInfo
 from custom_components.the_gym_group.coordinator import (
     _add_duration,
     _find_next_class,
+    _parse_booked_class,
     _parse_checkin_dt,
     _summarize_checkins,
 )
@@ -59,6 +60,40 @@ def test_find_next_class_excludes_already_started_classes() -> None:
     result = _find_next_class([in_progress, upcoming], now)
     assert result is not None
     assert result["name"] == "Upcoming Class"
+
+
+def test_parse_booked_class_returns_none_for_cancelled_class() -> None:
+    """A cancelled class must not be normalized."""
+    item = {"brief": {"name": "Cancelled", "startDateTime": 1_000, "cancelled": True}}
+    assert _parse_booked_class(item) is None
+
+
+def test_parse_booked_class_returns_none_without_a_start_time() -> None:
+    """A class with no startDateTime must not be normalized."""
+    item = {"brief": {"name": "No Start", "startDateTime": 0, "cancelled": False}}
+    assert _parse_booked_class(item) is None
+
+
+def test_parse_booked_class_normalizes_fields() -> None:
+    """Duration, spots, and defaults are computed from the raw brief."""
+    item = {
+        "brief": {
+            "name": "Spin",
+            "startDateTime": 1_000,
+            "endDateTime": 1_000 + 30 * 60_000,
+            "instructor": {"fullName": "Jane Smith"},
+            "maxCapacity": 20,
+            "totalBooked": 15,
+            "cancelled": False,
+        }
+    }
+    result = _parse_booked_class(item)
+    assert result is not None
+    assert result["name"] == "Spin"
+    assert result["instructor"] == "Jane Smith"
+    assert result["available_spots"] == 5
+    assert result["duration_minutes"] == 30
+    assert result["end_dt"] is not None
 
 
 def test_summarize_checkins_picks_latest_by_real_instant_not_lexical_string() -> None:

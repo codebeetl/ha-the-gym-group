@@ -139,38 +139,41 @@ def _summarize_checkins(
     }
 
 
+def _parse_booked_class(item: dict[str, Any]) -> dict[str, Any] | None:
+    """Normalize a raw schedule item, or None if cancelled/missing a start time."""
+    brief = item.get("brief", {})
+    if brief.get("cancelled", False):
+        return None
+    start_ms: int = brief.get("startDateTime", 0)
+    if not start_ms:
+        return None
+    end_ms: int = brief.get("endDateTime", 0)
+    instructor_info = brief.get("instructor") or {}
+    return {
+        "start_dt": datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc),
+        "end_dt": datetime.fromtimestamp(end_ms / 1000, tz=timezone.utc) if end_ms else None,
+        "name": brief.get("name") or "Booked Class",
+        "instructor": instructor_info.get("fullName") or "",
+        "available_spots": brief.get("maxCapacity", 0) - brief.get("totalBooked", 0),
+        "duration_minutes": (
+            round((end_ms - start_ms) / 60_000) if end_ms > start_ms else None
+        ),
+    }
+
+
 def _find_next_class(
     schedule: list[dict[str, Any]], now: datetime
 ) -> dict[str, Any] | None:
     """Return a dict of key attributes for the next non-cancelled, not-yet-started class."""
-    candidates: list[dict[str, Any]] = []
-    for item in schedule:
-        brief = item.get("brief", {})
-        if brief.get("cancelled", False):
-            continue
-        start_ms: int = brief.get("startDateTime", 0)
-        end_ms: int = brief.get("endDateTime", 0)
-        start_dt = datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc)
-        if start_dt <= now:
-            continue
-        instructor_info = brief.get("instructor") or {}
-        candidates.append(
-            {
-                "start_dt": start_dt,
-                "name": brief.get("name", ""),
-                "instructor": instructor_info.get("fullName", ""),
-                "available_spots": (
-                    brief.get("maxCapacity", 0) - brief.get("totalBooked", 0)
-                ),
-                "duration_minutes": (
-                    round((end_ms - start_ms) / 60_000) if end_ms > start_ms else None
-                ),
-            }
-        )
-    if not candidates:
+    upcoming = [
+        cls
+        for item in schedule
+        if (cls := _parse_booked_class(item)) is not None and cls["start_dt"] > now
+    ]
+    if not upcoming:
         return None
-    candidates.sort(key=lambda c: c["start_dt"])
-    return candidates[0]
+    upcoming.sort(key=lambda c: c["start_dt"])
+    return {k: v for k, v in upcoming[0].items() if k != "end_dt"}
 
 
 class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
@@ -215,23 +218,18 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
         check_ins: list[dict[str, Any]] = history_raw.get("checkIns", [])
         checkin_summary = _summarize_checkins(check_ins, now)
 
-        # All upcoming non-cancelled booked classes for the calendar entity.
-        calendar_classes: list[dict[str, Any]] = []
-        for item in schedule_raw:
-            brief = item.get("brief", {})
-            if brief.get("cancelled", False):
-                continue
-            start_ms: int = brief.get("startDateTime", 0)
-            end_ms: int = brief.get("endDateTime", 0)
-            if not start_ms:
-                continue
-            instructor_info = brief.get("instructor") or {}
-            calendar_classes.append({
-                "start": datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc),
-                "end": datetime.fromtimestamp(end_ms / 1000, tz=timezone.utc) if end_ms else None,
-                "name": brief.get("name") or "Booked Class",
-                "instructor": instructor_info.get("fullName") or "",
-            })
+        # All non-cancelled booked classes for the calendar entity (past and
+        # future - the calendar entity itself picks the active/next event).
+        calendar_classes = [
+            {
+                "start": cls["start_dt"],
+                "end": cls["end_dt"],
+                "name": cls["name"],
+                "instructor": cls["instructor"],
+            }
+            for item in schedule_raw
+            if (cls := _parse_booked_class(item)) is not None
+        ]
 
         return {
             **checkin_summary,
