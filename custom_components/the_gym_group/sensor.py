@@ -28,6 +28,10 @@ from .const import (
 from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCoordinator
 from .entity import TheGymGroupDeviceMixin
 
+# All sensors are read-only and backed by a coordinator, which already
+# centralizes inbound data updates - no per-entity concurrency limit needed.
+PARALLEL_UPDATES = 0
+
 
 async def async_setup_entry(
     hass: HomeAssistant,
