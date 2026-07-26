@@ -22,6 +22,7 @@ from .const import (
     DEFAULT_HOST,
     DOMAIN,
     PLATFORMS,
+    is_safe_header_value,
     is_valid_host,
 )
 from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCoordinator
@@ -119,6 +120,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) 
     advanced_kwargs = {
         field.key: entry.data.get(field.key, field.default) for field in ADVANCED_FIELDS
     }
+    for key, value in advanced_kwargs.items():
+        if key != CONF_HOST and not is_safe_header_value(value):
+            # Re-checked here (not just in config_flow) for the same reason as
+            # the host check above - a stored entry can predate this
+            # validation or be edited outside the options flow.
+            raise ConfigEntryError(f"Configured {key} contains unsafe characters")
     api_client = TheGymGroupApiClient(
         entry.data[CONF_USERNAME],
         entry.data[CONF_PASSWORD],

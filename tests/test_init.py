@@ -3,7 +3,7 @@
 from unittest.mock import patch
 
 from custom_components.the_gym_group.api import InvalidAuth
-from custom_components.the_gym_group.const import CONF_HOST, DOMAIN
+from custom_components.the_gym_group.const import CONF_HOST, CONF_USER_AGENT, DOMAIN
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from homeassistant.config_entries import ConfigEntryState
@@ -80,6 +80,31 @@ async def test_setup_entry_rejects_stored_host_outside_allowed_domain(
     entry = MockConfigEntry(
         domain=DOMAIN,
         data={**MOCK_CONFIG, CONF_HOST: "attacker.example.com"},
+        version=2,
+    )
+    entry.add_to_hass(hass)
+
+    with patch(
+        "custom_components.the_gym_group.api.TheGymGroupApiClient.async_login",
+    ) as mock_login:
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry.state is ConfigEntryState.SETUP_ERROR
+    mock_login.assert_not_called()
+
+
+async def test_setup_entry_rejects_stored_unsafe_advanced_field(
+    hass: HomeAssistant,
+) -> None:
+    """A stored entry with control characters in an advanced field must not
+
+    reach the API client. Guards against a legacy/manually-edited entry that
+    predates advanced-field validation.
+    """
+    entry = MockConfigEntry(
+        domain=DOMAIN,
+        data={**MOCK_CONFIG, CONF_USER_AGENT: "evil\r\nX-Injected: true"},
         version=2,
     )
     entry.add_to_hass(hass)
