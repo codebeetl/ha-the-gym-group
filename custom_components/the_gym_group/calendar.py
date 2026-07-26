@@ -11,6 +11,7 @@ from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import TheGymGroupConfigEntry
+from .const import GYM_CALENDAR_TRANSLATION_KEY
 from .coordinator import TheGymGroupActivityCoordinator
 from .entity import TheGymGroupDeviceMixin
 
@@ -72,7 +73,7 @@ class TheGymGroupCalendarEntity(
     """Calendar entity exposing gym visits and booked classes."""
 
     _attr_has_entity_name = True
-    _attr_name = "Gym Calendar"
+    _attr_translation_key = GYM_CALENDAR_TRANSLATION_KEY
     _attr_icon = "mdi:calendar-account"
 
     def __init__(

@@ -83,6 +83,11 @@
         }
     },
     "entity": {
+        "calendar": {
+            "gym_calendar": {
+                "name": "Gym Calendar"
+            }
+        },
         "sensor": {
             "busyness": {
                 "name": "Gym Population"

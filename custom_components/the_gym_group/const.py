@@ -119,6 +119,9 @@ MONTHLY_VISITS_TRANSLATION_KEY = "monthly_visits"
 MONTHLY_TIME_TRANSLATION_KEY = "monthly_time"
 NEXT_CLASS_TRANSLATION_KEY = "next_class"
 
+# Calendar translation key.
+GYM_CALENDAR_TRANSLATION_KEY = "gym_calendar"
+
 # Poll interval for the busyness DataUpdateCoordinator.
 SCAN_INTERVAL = timedelta(minutes=5)
 
