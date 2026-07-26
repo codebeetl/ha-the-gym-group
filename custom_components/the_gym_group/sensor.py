@@ -12,14 +12,12 @@ from homeassistant.components.sensor import (
 )
 from homeassistant.const import UnitOfTime
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity, DataUpdateCoordinator
 
 from . import TheGymGroupConfigEntry
 from .const import (
     BUSYNESS_TRANSLATION_KEY,
-    DOMAIN,
     HISTORICAL_ATTR_LIMIT,
     LAST_CHECKIN_TRANSLATION_KEY,
     MONTHLY_TIME_TRANSLATION_KEY,
@@ -28,6 +26,7 @@ from .const import (
     STATUS_TRANSLATION_KEY,
 )
 from .coordinator import TheGymGroupActivityCoordinator, TheGymGroupDataUpdateCoordinator
+from .entity import TheGymGroupDeviceMixin
 
 
 async def async_setup_entry(
@@ -49,26 +48,20 @@ async def async_setup_entry(
 
     async_add_entities(
         [
-            TheGymGroupBusynessSensor(busyness_coordinator, entry, device_id, gym_name),
-            TheGymGroupStatusSensor(busyness_coordinator, entry, device_id, gym_name),
-            TheGymGroupLastCheckinSensor(
-                activity_coordinator, entry, device_id, gym_name
-            ),
-            TheGymGroupMonthlyVisitsSensor(
-                activity_coordinator, entry, device_id, gym_name
-            ),
-            TheGymGroupMonthlyTimeSensor(
-                activity_coordinator, entry, device_id, gym_name
-            ),
-            TheGymGroupNextClassSensor(
-                activity_coordinator, entry, device_id, gym_name
-            ),
+            TheGymGroupBusynessSensor(busyness_coordinator, device_id, gym_name),
+            TheGymGroupStatusSensor(busyness_coordinator, device_id, gym_name),
+            TheGymGroupLastCheckinSensor(activity_coordinator, device_id, gym_name),
+            TheGymGroupMonthlyVisitsSensor(activity_coordinator, device_id, gym_name),
+            TheGymGroupMonthlyTimeSensor(activity_coordinator, device_id, gym_name),
+            TheGymGroupNextClassSensor(activity_coordinator, device_id, gym_name),
         ]
     )
 
 
 class _TheGymGroupBaseSensor(
-    CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]], SensorEntity
+    TheGymGroupDeviceMixin,
+    CoordinatorEntity[DataUpdateCoordinator[dict[str, Any]]],
+    SensorEntity,
 ):
     """Shared base for The Gym Group sensors."""
 
@@ -77,27 +70,14 @@ class _TheGymGroupBaseSensor(
     def __init__(
         self,
         coordinator: DataUpdateCoordinator[dict[str, Any]],
-        config_entry: TheGymGroupConfigEntry,
         unique_suffix: str,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the base sensor."""
-        super().__init__(coordinator)
-        self.config_entry: TheGymGroupConfigEntry = config_entry
-        self._device_id = device_id
-        self._gym_name = gym_name
+        CoordinatorEntity.__init__(self, coordinator)
+        TheGymGroupDeviceMixin.__init__(self, device_id, gym_name)
         self._attr_unique_id = f"{device_id}_{unique_suffix}"
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device information for the sensor."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._device_id)},
-            name=self._gym_name,
-            manufacturer="The Gym Group",
-            model="Unofficial integration",
-        )
 
 
 class TheGymGroupBusynessSensor(_TheGymGroupBaseSensor):
@@ -111,12 +91,11 @@ class TheGymGroupBusynessSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupDataUpdateCoordinator,
-        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the busyness sensor."""
-        super().__init__(coordinator, config_entry, "busyness", device_id, gym_name)
+        super().__init__(coordinator, "busyness", device_id, gym_name)
 
     @property
     def native_value(self) -> int | None:
@@ -153,12 +132,11 @@ class TheGymGroupStatusSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupDataUpdateCoordinator,
-        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the status sensor."""
-        super().__init__(coordinator, config_entry, "status", device_id, gym_name)
+        super().__init__(coordinator, "status", device_id, gym_name)
 
     @property
     def native_value(self) -> str | None:
@@ -177,12 +155,11 @@ class TheGymGroupLastCheckinSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the last check-in sensor."""
-        super().__init__(coordinator, config_entry, "last_checkin", device_id, gym_name)
+        super().__init__(coordinator, "last_checkin", device_id, gym_name)
 
     @property
     def native_value(self) -> datetime | None:
@@ -213,14 +190,11 @@ class TheGymGroupMonthlyVisitsSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the monthly visits sensor."""
-        super().__init__(
-            coordinator, config_entry, "monthly_visits", device_id, gym_name
-        )
+        super().__init__(coordinator, "monthly_visits", device_id, gym_name)
 
     @property
     def native_value(self) -> int | None:
@@ -242,14 +216,11 @@ class TheGymGroupMonthlyTimeSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the monthly gym time sensor."""
-        super().__init__(
-            coordinator, config_entry, "monthly_time", device_id, gym_name
-        )
+        super().__init__(coordinator, "monthly_time", device_id, gym_name)
 
     @property
     def native_value(self) -> float | None:
@@ -268,12 +239,11 @@ class TheGymGroupNextClassSensor(_TheGymGroupBaseSensor):
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialize the next class sensor."""
-        super().__init__(coordinator, config_entry, "next_class", device_id, gym_name)
+        super().__init__(coordinator, "next_class", device_id, gym_name)
 
     @property
     def native_value(self) -> datetime | None:
