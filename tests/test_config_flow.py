@@ -14,7 +14,12 @@ from custom_components.the_gym_group.const import (
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
-from homeassistant.config_entries import SOURCE_REAUTH, SOURCE_USER, ConfigEntryState
+from homeassistant.config_entries import (
+    SOURCE_REAUTH,
+    SOURCE_RECONFIGURE,
+    SOURCE_USER,
+    ConfigEntryState,
+)
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.data_entry_flow import FlowResultType
@@ -209,15 +214,17 @@ async def test_reauth_flow_invalid_auth(hass: HomeAssistant) -> None:
     assert result2["errors"] == {"base": "invalid_auth"}
 
 
-async def test_options_flow_success(
+async def test_reconfigure_flow_success(
     hass: HomeAssistant, loaded_entry: MockConfigEntry
 ) -> None:
-    """Test the options flow (reconfigure) succeeds."""
+    """Test the reconfigure flow succeeds."""
     entry = loaded_entry
 
-    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
     assert result["type"] == FlowResultType.FORM
-    assert result["step_id"] == "init"
+    assert result["step_id"] == "reconfigure"
 
     new_config = {
         **MOCK_CONFIG,
@@ -243,29 +250,32 @@ async def test_options_flow_success(
             return_value=MOCK_SCHEDULE_DATA,
         ),
     ):
-        result2 = await hass.config_entries.options.async_configure(
+        result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"], user_input=new_config
         )
         await hass.async_block_till_done()
 
-    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["type"] == FlowResultType.ABORT
+    assert result2["reason"] == "reconfigure_successful"
     assert entry.data == new_config
     assert len(mock_reload.mock_calls) == 1
 
 
-async def test_options_flow_invalid_auth(hass: HomeAssistant) -> None:
-    """Test options flow with invalid credentials."""
+async def test_reconfigure_flow_invalid_auth(hass: HomeAssistant) -> None:
+    """Test reconfigure flow with invalid credentials."""
     mock_entry = MockConfigEntry(
         domain=DOMAIN, data=MOCK_CONFIG, unique_id=MOCK_USER_ID, version=2
     )
     mock_entry.add_to_hass(hass)
 
-    result = await hass.config_entries.options.async_init(mock_entry.entry_id)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_RECONFIGURE, "entry_id": mock_entry.entry_id}
+    )
     with patch(
         "custom_components.the_gym_group.api.TheGymGroupApiClient.async_login",
         side_effect=InvalidAuth,
     ):
-        result2 = await hass.config_entries.options.async_configure(
+        result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 **MOCK_CONFIG,
@@ -277,7 +287,57 @@ async def test_options_flow_invalid_auth(hass: HomeAssistant) -> None:
     assert result2["errors"] == {"base": "invalid_auth"}
 
 
-async def test_options_flow_duplicate_account_rejected(
+async def test_reconfigure_flow_invalid_host_rejected(
+    hass: HomeAssistant, loaded_entry: MockConfigEntry
+) -> None:
+    """A host outside the netpulse.com domain is rejected without a login attempt."""
+    entry = loaded_entry
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
+
+    with patch(
+        "custom_components.the_gym_group.api.TheGymGroupApiClient.async_login",
+    ) as mock_login:
+        result2 = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                **MOCK_CONFIG,
+                CONF_HOST: "attacker.example.com",
+            },
+        )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "invalid_host"}
+    mock_login.assert_not_called()
+
+
+async def test_reconfigure_flow_invalid_advanced_field_rejected(
+    hass: HomeAssistant, loaded_entry: MockConfigEntry
+) -> None:
+    """A control character in an advanced field is rejected without a login attempt."""
+    entry = loaded_entry
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
+
+    with patch(
+        "custom_components.the_gym_group.api.TheGymGroupApiClient.async_login",
+    ) as mock_login:
+        result2 = await hass.config_entries.flow.async_configure(
+            result["flow_id"],
+            user_input={
+                **MOCK_CONFIG,
+                CONF_USER_AGENT: "evil\r\nX-Injected: true",
+            },
+        )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "invalid_advanced_field"}
+    mock_login.assert_not_called()
+
+
+async def test_reconfigure_flow_duplicate_account_rejected(
     hass: HomeAssistant, loaded_entry: MockConfigEntry
 ) -> None:
     """Switching to an account already configured on another entry is rejected."""
@@ -287,7 +347,9 @@ async def test_options_flow_duplicate_account_rejected(
     other_entry.add_to_hass(hass)
 
     entry = loaded_entry
-    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
 
     with (
         patch(
@@ -299,7 +361,7 @@ async def test_options_flow_duplicate_account_rejected(
             new_callable=lambda: "other-user-id",
         ),
     ):
-        result2 = await hass.config_entries.options.async_configure(
+        result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 **MOCK_CONFIG,
@@ -355,13 +417,15 @@ async def test_migration_v1_to_v2(hass: HomeAssistant) -> None:
     assert CONF_APPLICATION_VERSION_CODE not in entry.data
 
 
-async def test_options_flow_explicit_override_stored(
+async def test_reconfigure_flow_explicit_override_stored(
     hass: HomeAssistant, loaded_entry: MockConfigEntry
 ) -> None:
     """A filled advanced field is stored as an override; a cleared one is not."""
     entry = loaded_entry
 
-    result = await hass.config_entries.options.async_init(entry.entry_id)
+    result = await hass.config_entries.flow.async_init(
+        DOMAIN, context={"source": SOURCE_RECONFIGURE, "entry_id": entry.entry_id}
+    )
 
     with (
         patch(
@@ -382,7 +446,7 @@ async def test_options_flow_explicit_override_stored(
             return_value=MOCK_SCHEDULE_DATA,
         ),
     ):
-        result2 = await hass.config_entries.options.async_configure(
+        result2 = await hass.config_entries.flow.async_configure(
             result["flow_id"],
             user_input={
                 CONF_USERNAME: "test@email.com",
@@ -393,7 +457,8 @@ async def test_options_flow_explicit_override_stored(
         )
         await hass.async_block_till_done()
 
-    assert result2["type"] == FlowResultType.CREATE_ENTRY
+    assert result2["type"] == FlowResultType.ABORT
+    assert result2["reason"] == "reconfigure_successful"
     assert entry.data[CONF_HOST] == "custom.netpulse.com"
     assert CONF_USER_AGENT not in entry.data
     assert CONF_APPLICATION_NAME not in entry.data

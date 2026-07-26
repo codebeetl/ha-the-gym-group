@@ -73,10 +73,10 @@ Everything is configured through the UI - there is **no YAML configuration**.
 
 ### Changing credentials later
 
-Open the integration in **Settings -> Devices & services**, click **Configure**,
-and re-enter the username and password. If the new credentials belong to a
-different Gym Group account, the integration will repoint the device at that
-account.
+Open the integration in **Settings -> Devices & services**, click the **...**
+menu on the entry and choose **Reconfigure**, then re-enter the username and
+password. If the new credentials belong to a different Gym Group account, the
+integration will repoint the device at that account.
 
 ### Advanced configuration
 
@@ -87,7 +87,7 @@ the API can start returning 401/403/4xx until the new version's headers are
 sent.
 
 To handle that without releasing a new build of the integration, the setup
-form (and the **Configure** options form) exposes the following fields with
+form (and the **Reconfigure** form) exposes the following fields with
 sensible defaults:
 
 | Field | Default | What it does |
@@ -101,7 +101,7 @@ sensible defaults:
 Most users should leave these alone. If the integration starts failing all
 requests with 4xx after a Gym Group app update, install the latest official
 Android app, look up its version (Play Store -> app -> "About") and version
-code, and update the two `Application version` fields via **Configure**. The
+code, and update the two `Application version` fields via **Reconfigure**. The
 integration will re-validate against the API as part of saving, so a typo
 that breaks login is caught immediately rather than at the next refresh.
 
@@ -114,8 +114,8 @@ two polling groups.
 
 | Sensor | Unique ID | Unit | Description |
 | --- | --- | --- | --- |
-| Gym Population | `<gymLocationId>_busyness` | `people` | Current occupancy returned by the API. |
-| Status | `<gymLocationId>_status` | - | `open` or `closed`. |
+| Gym Population | `<config_entry_id>_busyness` | `people` | Current occupancy returned by the API. |
+| Status | `<config_entry_id>_status` | - | `open` or `closed`. |
 
 Additional state attributes on **Gym Population**:
 
@@ -131,10 +131,10 @@ Additional state attributes on **Gym Population**:
 
 | Sensor | Unique ID | Unit | Description |
 | --- | --- | --- | --- |
-| Last Check-in | `<gymLocationId>_last_checkin` | - | Date and time of your most recent gym visit. |
-| Monthly Visits | `<gymLocationId>_monthly_visits` | `visits` | Number of visits in the current calendar month. |
-| Monthly Gym Time | `<gymLocationId>_monthly_time` | `h` | Total hours spent in the gym this calendar month. |
-| Next Booked Class | `<gymLocationId>_next_class` | - | Start time of your next booked class, or `None` if none are booked. |
+| Last Check-in | `<config_entry_id>_last_checkin` | - | Date and time of your most recent gym visit. |
+| Monthly Visits | `<config_entry_id>_monthly_visits` | `visits` | Number of visits in the current calendar month. |
+| Monthly Gym Time | `<config_entry_id>_monthly_time` | `h` | Total hours spent in the gym this calendar month. |
+| Next Booked Class | `<config_entry_id>_next_class` | - | Start time of your next booked class, or `None` if none are booked. |
 
 Additional state attributes on **Last Check-in**:
 
@@ -157,7 +157,7 @@ Additional state attributes on **Next Booked Class**:
 
 | Entity | Unique ID | Description |
 | --- | --- | --- |
-| Gym Calendar | `<gymLocationId>_calendar` | A standard HA calendar showing past visits and upcoming booked classes. |
+| Gym Calendar | `<config_entry_id>_calendar` | A standard HA calendar showing past visits and upcoming booked classes. |
 
 The calendar entity appears on the Home Assistant **Calendar** dashboard alongside
 your other calendars, and is available in the **When a calendar event starts/ends**
@@ -275,8 +275,10 @@ and open an issue.
 ### Entities are "unavailable" or the population is `unknown`
 
 Check the Home Assistant log (**Settings -> System -> Logs**) for entries from
-`custom_components.the_gym_group`. Transient API errors are logged at `ERROR`;
-successful polls at `DEBUG`.
+`custom_components.the_gym_group`. Home Assistant itself logs once when an
+entity becomes unavailable and once when it recovers; the integration's own
+request-level detail (transient failures, successful polls) is only logged at
+`DEBUG`.
 
 Enable debug logging for the integration:
 
@@ -307,6 +309,18 @@ contains:
 
 Please include the diagnostics file when opening bug reports - it's the fastest
 way to reproduce issues.
+
+## Removing the integration
+
+1. Go to **Settings -> Devices & services -> The Gym Group**.
+2. Click the **...** menu on the entry (or the device) and choose **Delete**.
+   This removes the config entry along with its entities and device.
+3. If you installed via HACS and want to remove the integration's files too,
+   go to **HACS -> Integrations -> The Gym Group -> ... -> Remove**.
+4. Restart Home Assistant to complete the removal.
+
+No files outside `custom_components/the_gym_group/` are created, so no other
+manual cleanup is needed.
 
 ## Development
 
@@ -363,7 +377,8 @@ five minutes).
 
 Your credentials are stored by Home Assistant in the same way as any other
 integration (encrypted at rest in the config entry store); they are transmitted
-only to `thegymgroup.netpulse.com` over HTTPS.
+only to `thegymgroup.netpulse.com` (or another `netpulse.com` subdomain, if you
+override the API host) over HTTPS.
 
 ## License
 

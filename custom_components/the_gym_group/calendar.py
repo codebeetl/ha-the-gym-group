@@ -7,13 +7,17 @@ from typing import Any
 
 from homeassistant.components.calendar import CalendarEntity, CalendarEvent
 from homeassistant.core import HomeAssistant
-from homeassistant.helpers.device_registry import DeviceInfo
 from homeassistant.helpers.entity_platform import AddConfigEntryEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 
 from . import TheGymGroupConfigEntry
-from .const import DOMAIN
+from .const import GYM_CALENDAR_TRANSLATION_KEY
 from .coordinator import TheGymGroupActivityCoordinator
+from .entity import TheGymGroupDeviceMixin
+
+# Read-only, backed by a coordinator, which already centralizes inbound data
+# updates - no per-entity concurrency limit needed.
+PARALLEL_UPDATES = 0
 
 
 async def async_setup_entry(
@@ -25,11 +29,13 @@ async def async_setup_entry(
     runtime_data = entry.runtime_data
     activity_coordinator = runtime_data.activity
     busyness_data = runtime_data.busyness.data or {}
-    device_id = str(busyness_data.get("gymLocationId") or entry.entry_id)
+    # Scoped by entry_id (not just gymLocationId) so two accounts sharing the
+    # same home gym don't collide on unique_id / device identifiers.
+    device_id = entry.entry_id
     gym_name = busyness_data.get("gymLocationName", "The Gym Group")
 
     async_add_entities(
-        [TheGymGroupCalendarEntity(activity_coordinator, entry, device_id, gym_name)]
+        [TheGymGroupCalendarEntity(activity_coordinator, device_id, gym_name)]
     )
 
 
@@ -62,36 +68,24 @@ def _make_class_event(cls: dict[str, Any], gym_name: str) -> CalendarEvent:
 
 
 class TheGymGroupCalendarEntity(
-    CoordinatorEntity[TheGymGroupActivityCoordinator], CalendarEntity
+    TheGymGroupDeviceMixin, CoordinatorEntity[TheGymGroupActivityCoordinator], CalendarEntity
 ):
     """Calendar entity exposing gym visits and booked classes."""
 
     _attr_has_entity_name = True
-    _attr_name = "Gym Calendar"
+    _attr_translation_key = GYM_CALENDAR_TRANSLATION_KEY
     _attr_icon = "mdi:calendar-account"
 
     def __init__(
         self,
         coordinator: TheGymGroupActivityCoordinator,
-        config_entry: TheGymGroupConfigEntry,
         device_id: str,
         gym_name: str,
     ) -> None:
         """Initialise the calendar entity."""
-        super().__init__(coordinator)
-        self._device_id = device_id
-        self._gym_name = gym_name
+        CoordinatorEntity.__init__(self, coordinator)
+        TheGymGroupDeviceMixin.__init__(self, device_id, gym_name)
         self._attr_unique_id = f"{device_id}_calendar"
-
-    @property
-    def device_info(self) -> DeviceInfo:
-        """Return device info so the entity appears on the existing device."""
-        return DeviceInfo(
-            identifiers={(DOMAIN, self._device_id)},
-            name=self._gym_name,
-            manufacturer="The Gym Group",
-            model="Unofficial integration",
-        )
 
     def _all_events(self) -> list[CalendarEvent]:
         """Return all known events sorted chronologically."""

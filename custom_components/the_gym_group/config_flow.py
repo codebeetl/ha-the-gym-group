@@ -9,25 +9,21 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
 from .api import CannotConnect, InvalidAuth, TheGymGroupApiClient
 from .const import (
-    CONF_APPLICATION_NAME,
-    CONF_APPLICATION_VERSION,
-    CONF_APPLICATION_VERSION_CODE,
+    ADVANCED_FIELDS,
+    ADVANCED_FIELD_KEYS,
     CONF_HOST,
-    CONF_USER_AGENT,
-    DEFAULT_APPLICATION_NAME,
-    DEFAULT_APPLICATION_VERSION,
-    DEFAULT_APPLICATION_VERSION_CODE,
     DEFAULT_HOST,
-    DEFAULT_USER_AGENT,
     DOMAIN,
+    is_safe_header_value,
+    is_valid_host,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -43,24 +39,19 @@ _PASSWORD_SELECTOR = selector.TextSelector(
     selector.TextSelectorConfig(type=selector.TextSelectorType.PASSWORD)
 )
 
-# The five transport/app-identity fields that are optional overrides.
-_ADV_CONF_KEYS = frozenset({
-    CONF_HOST,
-    CONF_USER_AGENT,
-    CONF_APPLICATION_NAME,
-    CONF_APPLICATION_VERSION,
-    CONF_APPLICATION_VERSION_CODE,
-})
+class _InvalidHost(Exception):
+    """Raised when the configured host isn't an allowed Netpulse domain."""
+
+
+class _InvalidAdvancedField(Exception):
+    """Raised when a header override field contains unsafe characters."""
+
 
 # Passed as description_placeholders to every form that shows advanced fields
 # so that data_description strings in translations can reference the current
 # built-in defaults without duplicating the values in the translation file.
 _ADV_DEFAULTS_PLACEHOLDERS: dict[str, str] = {
-    "default_host": DEFAULT_HOST,
-    "default_user_agent": DEFAULT_USER_AGENT,
-    "default_application_name": DEFAULT_APPLICATION_NAME,
-    "default_application_version": DEFAULT_APPLICATION_VERSION,
-    "default_application_version_code": DEFAULT_APPLICATION_VERSION_CODE,
+    field.placeholder_key: field.default for field in ADVANCED_FIELDS
 }
 
 
@@ -74,7 +65,7 @@ def _clean_advanced(data: dict[str, Any]) -> dict[str, Any]:
     return {
         k: v
         for k, v in data.items()
-        if k not in _ADV_CONF_KEYS or (isinstance(v, str) and v.strip())
+        if k not in ADVANCED_FIELD_KEYS or (isinstance(v, str) and v.strip())
     }
 
 
@@ -98,40 +89,13 @@ def _credentials_schema(
 
     schema[vol.Required(CONF_PASSWORD)] = _PASSWORD_SELECTOR
 
-    schema[
-        vol.Optional(
-            CONF_HOST,
-            description={"suggested_value": defaults.get(CONF_HOST) or ""},
-        )
-    ] = str
-    schema[
-        vol.Optional(
-            CONF_USER_AGENT,
-            description={"suggested_value": defaults.get(CONF_USER_AGENT) or ""},
-        )
-    ] = str
-    schema[
-        vol.Optional(
-            CONF_APPLICATION_NAME,
-            description={"suggested_value": defaults.get(CONF_APPLICATION_NAME) or ""},
-        )
-    ] = str
-    schema[
-        vol.Optional(
-            CONF_APPLICATION_VERSION,
-            description={
-                "suggested_value": defaults.get(CONF_APPLICATION_VERSION) or ""
-            },
-        )
-    ] = str
-    schema[
-        vol.Optional(
-            CONF_APPLICATION_VERSION_CODE,
-            description={
-                "suggested_value": defaults.get(CONF_APPLICATION_VERSION_CODE) or ""
-            },
-        )
-    ] = str
+    for field in ADVANCED_FIELDS:
+        schema[
+            vol.Optional(
+                field.key,
+                description={"suggested_value": defaults.get(field.key) or ""},
+            )
+        ] = str
 
     return vol.Schema(schema)
 
@@ -145,24 +109,28 @@ async def _try_login(
     transport / app-identity fields are optional and fall back to defaults.
 
     Raises:
+        _InvalidHost: the configured host isn't an allowed Netpulse domain.
+        _InvalidAdvancedField: an override contains unsafe header characters.
         InvalidAuth: credentials rejected.
         CannotConnect: transport / server error.
     """
+    host = user_input.get(CONF_HOST, DEFAULT_HOST)
+    if not is_valid_host(host):
+        raise _InvalidHost(f"Host not allowed: {host}")
+
+    # Field keys match TheGymGroupApiClient's keyword argument names exactly,
+    # so the five overrides can be forwarded as a single kwargs dict.
+    advanced_kwargs = {
+        field.key: user_input.get(field.key, field.default) for field in ADVANCED_FIELDS
+    }
+    for key, value in advanced_kwargs.items():
+        if key != CONF_HOST and not is_safe_header_value(value):
+            raise _InvalidAdvancedField(f"Unsafe value for {key}")
     client = TheGymGroupApiClient(
         user_input[CONF_USERNAME],
         user_input[CONF_PASSWORD],
         async_get_clientsession(hass),
-        host=user_input.get(CONF_HOST, DEFAULT_HOST),
-        user_agent=user_input.get(CONF_USER_AGENT, DEFAULT_USER_AGENT),
-        application_name=user_input.get(
-            CONF_APPLICATION_NAME, DEFAULT_APPLICATION_NAME
-        ),
-        application_version=user_input.get(
-            CONF_APPLICATION_VERSION, DEFAULT_APPLICATION_VERSION
-        ),
-        application_version_code=user_input.get(
-            CONF_APPLICATION_VERSION_CODE, DEFAULT_APPLICATION_VERSION_CODE
-        ),
+        **advanced_kwargs,
     )
     await client.async_login()
     return client
@@ -172,14 +140,6 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Handle a config flow for The Gym Group."""
 
     VERSION = 2
-
-    @staticmethod
-    @callback
-    def async_get_options_flow(
-        config_entry: ConfigEntry,
-    ) -> TheGymGroupOptionsFlow:
-        """Get the options flow for this handler."""
-        return TheGymGroupOptionsFlow()
 
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
@@ -191,6 +151,10 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             cleaned = _clean_advanced(user_input)
             try:
                 client = await _try_login(self.hass, cleaned)
+            except _InvalidHost:
+                errors["base"] = "invalid_host"
+            except _InvalidAdvancedField:
+                errors["base"] = "invalid_advanced_field"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -231,6 +195,10 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             login_input = {**entry.data, CONF_PASSWORD: password}
             try:
                 await _try_login(self.hass, login_input)
+            except _InvalidHost:
+                errors["base"] = "invalid_host"
+            except _InvalidAdvancedField:
+                errors["base"] = "invalid_advanced_field"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -256,24 +224,25 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-
-class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
-    """Options flow - allows changing stored credentials and transport fields."""
-
-    async def async_step_init(
+    async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage the options.
+        """Handle reconfiguration: update credentials and transport fields.
 
         Re-validates credentials (which also exercises the advanced fields, so
         a bad host / user-agent is caught here rather than at the next refresh).
         """
         errors: dict[str, str] = {}
+        reconfigure_entry = self._get_reconfigure_entry()
 
         if user_input is not None:
             cleaned = _clean_advanced(user_input)
             try:
                 client = await _try_login(self.hass, cleaned)
+            except _InvalidHost:
+                errors["base"] = "invalid_host"
+            except _InvalidAdvancedField:
+                errors["base"] = "invalid_advanced_field"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -286,11 +255,11 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                 # unique_id in sync so HA can still detect duplicates - but
                 # first check no other entry already owns that account.
                 new_unique_id: str | None = None
-                if client.user_id and client.user_id != self.config_entry.unique_id:
+                if client.user_id and client.user_id != reconfigure_entry.unique_id:
                     existing = self.hass.config_entries.async_entry_for_domain_unique_id(
                         DOMAIN, client.user_id
                     )
-                    if existing is not None and existing.entry_id != self.config_entry.entry_id:
+                    if existing is not None and existing.entry_id != reconfigure_entry.entry_id:
                         errors["base"] = "already_configured"
                     else:
                         new_unique_id = client.user_id
@@ -301,8 +270,8 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                     # than leaving the old value from entry.data in place.
                     base = {
                         k: v
-                        for k, v in self.config_entry.data.items()
-                        if k not in _ADV_CONF_KEYS
+                        for k, v in reconfigure_entry.data.items()
+                        if k not in ADVANCED_FIELD_KEYS
                     }
                     new_data = {**base, **cleaned}
 
@@ -311,17 +280,17 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                         update_kwargs["unique_id"] = new_unique_id
 
                     self.hass.config_entries.async_update_entry(
-                        self.config_entry, **update_kwargs
+                        reconfigure_entry, **update_kwargs
                     )
                     # The update_listener in __init__.py will reload the entry.
-                    return self.async_create_entry(title="", data={})
+                    return self.async_abort(reason="reconfigure_successful")
 
         # Pre-fill from the current entry, with the in-flight user_input
         # taking precedence so users see what they just typed on validation
         # errors.
-        defaults = {**self.config_entry.data, **(user_input or {})}
+        defaults = {**reconfigure_entry.data, **(user_input or {})}
         return self.async_show_form(
-            step_id="init",
+            step_id="reconfigure",
             data_schema=_credentials_schema(defaults),
             description_placeholders=_ADV_DEFAULTS_PLACEHOLDERS,
             errors=errors,

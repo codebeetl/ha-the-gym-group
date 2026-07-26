@@ -2,9 +2,12 @@
 
 from __future__ import annotations
 
+import re
+from dataclasses import dataclass
 from datetime import timedelta
 
 from homeassistant.const import Platform
+from yarl import URL
 
 # The domain of your integration. Should be unique.
 DOMAIN = "the_gym_group"
@@ -33,6 +36,66 @@ DEFAULT_APPLICATION_NAME = "The Gym Group"
 DEFAULT_APPLICATION_VERSION = "7.7"
 DEFAULT_APPLICATION_VERSION_CODE = "121"
 
+# Credentials are posted in plaintext to whatever host is configured, so a
+# bare hostname isn't enough - it must also live under the API provider's own
+# domain. Enforced both when the host is saved (config_flow) and every time
+# it's read back out for a live setup (async_setup_entry), since a stored
+# entry can predate this check or be edited outside the options flow.
+_HOST_RE = re.compile(
+    r"^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
+ALLOWED_HOST_DOMAIN = "netpulse.com"
+
+
+def is_valid_host(host: str) -> bool:
+    """Return True if host is a bare hostname under the allowed domain."""
+    if not host or not _HOST_RE.match(host):
+        return False
+    host = host.lower()
+    return host == ALLOWED_HOST_DOMAIN or host.endswith(f".{ALLOWED_HOST_DOMAIN}")
+
+
+def is_safe_header_value(value: str) -> bool:
+    """Return True if value has no control characters unsafe in an HTTP header."""
+    return not any(ord(ch) < 0x20 or ord(ch) == 0x7F for ch in value)
+
+
+@dataclass(frozen=True)
+class AdvancedField:
+    """One of the five optional transport/app-identity override fields.
+
+    A single source of truth for the config entry key, its built-in default,
+    and the placeholder name used in translations - so the form schema, the
+    client kwargs, and the v1->v2 migration all derive from the same list
+    instead of hand-listing the five keys in each place.
+    """
+
+    key: str
+    default: str
+    placeholder_key: str
+
+
+ADVANCED_FIELDS: tuple[AdvancedField, ...] = (
+    AdvancedField(CONF_HOST, DEFAULT_HOST, "default_host"),
+    AdvancedField(CONF_USER_AGENT, DEFAULT_USER_AGENT, "default_user_agent"),
+    AdvancedField(
+        CONF_APPLICATION_NAME, DEFAULT_APPLICATION_NAME, "default_application_name"
+    ),
+    AdvancedField(
+        CONF_APPLICATION_VERSION,
+        DEFAULT_APPLICATION_VERSION,
+        "default_application_version",
+    ),
+    AdvancedField(
+        CONF_APPLICATION_VERSION_CODE,
+        DEFAULT_APPLICATION_VERSION_CODE,
+        "default_application_version_code",
+    ),
+)
+
+ADVANCED_FIELD_KEYS: frozenset[str] = frozenset(field.key for field in ADVANCED_FIELDS)
+
 # --- API path templates (the host is supplied at runtime).
 LOGIN_PATH = "/np/exerciser/login"
 BUSYNESS_PATH_TEMPLATE = "/np/thegymgroup/v1.0/exerciser/{user_id}/gym-busyness"
@@ -55,6 +118,9 @@ LAST_CHECKIN_TRANSLATION_KEY = "last_checkin"
 MONTHLY_VISITS_TRANSLATION_KEY = "monthly_visits"
 MONTHLY_TIME_TRANSLATION_KEY = "monthly_time"
 NEXT_CLASS_TRANSLATION_KEY = "next_class"
+
+# Calendar translation key.
+GYM_CALENDAR_TRANSLATION_KEY = "gym_calendar"
 
 # Poll interval for the busyness DataUpdateCoordinator.
 SCAN_INTERVAL = timedelta(minutes=5)
@@ -98,12 +164,13 @@ def build_headers(
 
 def build_login_url(host: str = DEFAULT_HOST) -> str:
     """Return the full login URL for the given host."""
-    return f"https://{host}{LOGIN_PATH}"
+    return str(URL.build(scheme="https", host=host, path=LOGIN_PATH))
 
 
 def build_busyness_url(user_id: str, host: str = DEFAULT_HOST) -> str:
     """Return the busyness URL for the given user on the given host."""
-    return f"https://{host}{BUSYNESS_PATH_TEMPLATE.format(user_id=user_id)}"
+    path = BUSYNESS_PATH_TEMPLATE.format(user_id=user_id)
+    return str(URL.build(scheme="https", host=host, path=path))
 
 
 def build_checkin_history_url(
@@ -111,7 +178,8 @@ def build_checkin_history_url(
 ) -> str:
     """Return the check-in history URL for the given user and date range."""
     path = CHECKIN_HISTORY_PATH_TEMPLATE.format(user_id=user_id)
-    return f"https://{host}{path}?startDate={start_date}&endDate={end_date}"
+    url = URL.build(scheme="https", host=host, path=path)
+    return str(url.with_query(startDate=start_date, endDate=end_date))
 
 
 def build_schedule_url(
@@ -119,4 +187,5 @@ def build_schedule_url(
 ) -> str:
     """Return the user schedule URL for the given epoch-millisecond range."""
     path = SCHEDULE_PATH_TEMPLATE.format(user_id=user_id)
-    return f"https://{host}{path}?startDateTime={start_ms}&endDateTime={end_ms}"
+    url = URL.build(scheme="https", host=host, path=path)
+    return str(url.with_query(startDateTime=str(start_ms), endDateTime=str(end_ms)))

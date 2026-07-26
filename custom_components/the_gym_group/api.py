@@ -4,7 +4,8 @@ from __future__ import annotations
 
 import asyncio
 import logging
-from typing import Any, cast
+from collections.abc import Callable
+from typing import Any
 
 import aiohttp
 
@@ -113,20 +114,30 @@ class TheGymGroupApiClient:
                     )
                     raise InvalidAuth(f"Login rejected: {response.status}")
                 if response.status != 200:
-                    _LOGGER.error("Login failed with status code: %s", response.status)
+                    _LOGGER.debug("Login failed with status code: %s", response.status)
                     raise CannotConnect(f"Unexpected login status: {response.status}")
 
-                data: dict[str, Any] = await response.json()
+                data = await response.json()
+                if not isinstance(data, dict):
+                    _LOGGER.debug("Login response was not a JSON object: %r", type(data))
+                    raise CannotConnect("Login response was not a JSON object")
                 user_id = str(data.get("uuid") or "")
                 if not user_id:
-                    _LOGGER.error("Login response missing user ID")
+                    _LOGGER.debug("Login response missing user ID")
                     raise CannotConnect("Login response missing user ID")
 
                 self._user_id = user_id
                 _LOGGER.debug("Login successful, session cookie stored")
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            _LOGGER.error("Error during login request: %s", err)
+            # Debug, not error/warning - these are transient connectivity
+            # failures raised as CannotConnect. DataUpdateCoordinator already
+            # logs once when the entity goes unavailable and once on
+            # recovery; logging here on every poll would duplicate that.
+            _LOGGER.debug("Error during login request: %s", err)
             raise CannotConnect(f"Login transport error: {err}") from err
+        except ValueError as err:
+            _LOGGER.debug("Login response was not valid JSON: %s", err)
+            raise CannotConnect(f"Invalid login response: {err}") from err
 
     async def _ensure_logged_in(self) -> None:
         """Ensure the client has a user ID, logging in if necessary.
@@ -140,6 +151,31 @@ class TheGymGroupApiClient:
         _LOGGER.debug("No user ID; performing initial login")
         await self.async_login()
 
+    async def _get_with_reauth(
+        self, url_factory: Callable[[], str], description: str
+    ) -> Any:
+        """GET a URL, retrying once with a fresh login if auth was rejected.
+
+        ``url_factory`` is called again for the retry since it depends on
+        ``self._user_id``, which a re-login may refresh.
+
+        Raises:
+            InvalidAuth: authentication still failing after a re-login.
+            CannotConnect: non-auth HTTP or transport errors.
+        """
+        await self._ensure_logged_in()
+        data = await self._do_get(url_factory(), description)
+        if data is not None:
+            return data
+
+        _LOGGER.debug("%s fetch returned auth error; re-logging in", description)
+        await self.async_login()
+
+        data = await self._do_get(url_factory(), description)
+        if data is None:
+            raise InvalidAuth("Authentication still failing after re-login")
+        return data
+
     async def async_get_busyness(self) -> dict[str, Any]:
         """Fetch the gym busyness data.
 
@@ -147,21 +183,12 @@ class TheGymGroupApiClient:
             InvalidAuth: authentication failed.
             CannotConnect: API returned a non-auth error.
         """
-        await self._ensure_logged_in()
-        url: str = build_busyness_url(self._user_id, self._host)
-
-        data = await self._do_get(url, "gym busyness")
-        if data is not None:
-            return cast(dict[str, Any], data)
-
-        _LOGGER.debug("Busyness fetch returned auth error; re-logging in")
-        await self.async_login()
-
-        url = build_busyness_url(self._user_id, self._host)
-        data = await self._do_get(url, "gym busyness")
-        if data is None:
-            raise InvalidAuth("Authentication still failing after re-login")
-        return cast(dict[str, Any], data)
+        data = await self._get_with_reauth(
+            lambda: build_busyness_url(self._user_id, self._host), "gym busyness"
+        )
+        if not isinstance(data, dict):
+            raise CannotConnect("Unexpected response shape for gym busyness")
+        return data
 
     async def async_get_checkin_history(
         self, start_date: str, end_date: str
@@ -172,20 +199,15 @@ class TheGymGroupApiClient:
             InvalidAuth: authentication failed.
             CannotConnect: API returned a non-auth error.
         """
-        await self._ensure_logged_in()
-        url = build_checkin_history_url(self._user_id, start_date, end_date, self._host)
-
-        data = await self._do_get(url, "check-in history")
-        if data is not None:
-            return cast(dict[str, Any], data)
-        _LOGGER.debug("Check-in history fetch returned auth error; re-logging in")
-        await self.async_login()
-
-        url = build_checkin_history_url(self._user_id, start_date, end_date, self._host)
-        data = await self._do_get(url, "check-in history")
-        if data is None:
-            raise InvalidAuth("Authentication still failing after re-login")
-        return cast(dict[str, Any], data)
+        data = await self._get_with_reauth(
+            lambda: build_checkin_history_url(
+                self._user_id, start_date, end_date, self._host
+            ),
+            "check-in history",
+        )
+        if not isinstance(data, dict):
+            raise CannotConnect("Unexpected response shape for check-in history")
+        return data
 
     async def async_get_schedule(
         self, start_ms: int, end_ms: int
@@ -196,20 +218,13 @@ class TheGymGroupApiClient:
             InvalidAuth: authentication failed.
             CannotConnect: API returned a non-auth error.
         """
-        await self._ensure_logged_in()
-        url = build_schedule_url(self._user_id, start_ms, end_ms, self._host)
-
-        data = await self._do_get(url, "schedule")
-        if data is not None:
-            return cast(list[dict[str, Any]], data)
-        _LOGGER.debug("Schedule fetch returned auth error; re-logging in")
-        await self.async_login()
-
-        url = build_schedule_url(self._user_id, start_ms, end_ms, self._host)
-        data = await self._do_get(url, "schedule")
-        if data is None:
-            raise InvalidAuth("Authentication still failing after re-login")
-        return cast(list[dict[str, Any]], data)
+        data = await self._get_with_reauth(
+            lambda: build_schedule_url(self._user_id, start_ms, end_ms, self._host),
+            "schedule",
+        )
+        if not isinstance(data, list):
+            raise CannotConnect("Unexpected response shape for schedule")
+        return data
 
     async def _do_get(self, url: str, description: str = "data") -> Any | None:
         """Perform a GET and return JSON, or None if auth was rejected.
@@ -224,11 +239,16 @@ class TheGymGroupApiClient:
                 if response.status in (401, 403):
                     return None
                 if response.status != 200:
-                    _LOGGER.error(
+                    # Debug, not error - see the comment in async_login: the
+                    # coordinator already owns unavailable/recovery logging.
+                    _LOGGER.debug(
                         "Failed to fetch %s: HTTP %s", description, response.status
                     )
                     raise CannotConnect(f"HTTP {response.status}")
                 return await response.json()
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            _LOGGER.error("Error fetching %s: %s", description, err)
+            _LOGGER.debug("Error fetching %s: %s", description, err)
             raise CannotConnect(f"Transport error: {err}") from err
+        except ValueError as err:
+            _LOGGER.debug("Response for %s was not valid JSON: %s", description, err)
+            raise CannotConnect(f"Invalid response: {err}") from err

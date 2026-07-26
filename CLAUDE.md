@@ -49,14 +49,17 @@ and raises `CannotConnect` on other errors.
 **`const.py`** - All configurable defaults and URL builders live here. When The Gym Group
 bumps their Android app version and the API starts rejecting requests, update
 `DEFAULT_APPLICATION_VERSION` and `DEFAULT_APPLICATION_VERSION_CODE` here (or users can
-override via the options flow without a code change).
+override via the Reconfigure flow without a code change).
 
-**`config_flow.py`** - Three flows share `_credentials_schema()` and `_try_login()`:
+**`config_flow.py`** - Three flows on `TheGymGroupConfigFlow` share `_credentials_schema()`
+and `_try_login()`:
 - `async_step_user` - initial setup; sets the config entry's `unique_id` to `user_id`
   (Netpulse UUID) to prevent duplicate accounts.
 - `async_step_reauth` - password-only re-entry; preserves existing advanced transport fields.
-- `TheGymGroupOptionsFlow.async_step_init` - full reconfigure including advanced fields;
-  re-validates credentials immediately so bad values are caught at save time.
+- `async_step_reconfigure` - full reconfigure including advanced fields and account
+  switching; re-validates credentials immediately so bad values are caught at save time.
+  There is no separate options flow - this replaced it so the integration follows current
+  HA quality-scale guidance (reconfigure, not options, for connection settings).
 
 The forms use `selector.TextSelector` rather than bare voluptuous types because HA's form
 renderer cannot serialise bare callables like `vol.Email`.
@@ -68,10 +71,12 @@ renderer cannot serialise bare callables like `vol.Email`.
   history, and schedule; parses raw data into typed values (`datetime`, `int`, `float`,
   `dict | None`) before returning to sensors.
 
-**`sensor.py`** - All six sensors extend `_TheGymGroupBaseSensor` which inherits
-`CoordinatorEntity`. The base class takes explicit `device_id` and `gym_name` parameters
-(resolved once from busyness coordinator data in `async_setup_entry`) so activity sensors
-share the same HA device as busyness sensors. The busyness sensor caps `historical` to
+**`sensor.py`** - All six sensors extend `_TheGymGroupBaseSensor`, which mixes in
+`TheGymGroupDeviceMixin` (shared `device_info`, in `entity.py`) with `CoordinatorEntity`.
+`device_id` is `entry.entry_id` (not the API's `gymLocationId` - that would collide if two
+accounts share a home gym) and `gym_name` comes from busyness coordinator data; both are
+resolved once in `async_setup_entry` so activity sensors share the same HA device as
+busyness sensors. The busyness sensor caps `historical` to
 `HISTORICAL_ATTR_LIMIT` (24) entries in `extra_state_attributes` to avoid recorder bloat;
 the full payload is available via diagnostics.
 
@@ -115,9 +120,15 @@ defect; the test itself PASSES.
   introduced the Brands Proxy API, which is why `custom_components/the_gym_group/brand/`
   works without any extra manifest configuration.
 - The integration is `iot_class: cloud_polling` with no local device; all data comes from
-  `thegymgroup.netpulse.com` over HTTPS.
-- Config entry `unique_id` is the Netpulse user UUID - changing accounts via the options
-  flow updates `unique_id` so HA's duplicate-detection stays accurate.
+  `thegymgroup.netpulse.com` (or another `netpulse.com` subdomain, if overridden) over
+  HTTPS - `is_valid_host()` in `const.py` enforces the domain both in the config flow and
+  again at entry setup, since a stored entry can predate that check.
+- Config entry `unique_id` is the Netpulse user UUID - changing accounts via the
+  Reconfigure flow updates `unique_id` so HA's duplicate-detection stays accurate.
+- Device/entity `unique_id`s are scoped by `entry.entry_id`, not `gymLocationId` -
+  two accounts sharing a home gym must not collide. `__init__.py`'s
+  `_migrate_registry_ids()` renames pre-existing `gymLocationId`-based registry
+  entries on setup so upgraded installs don't get orphaned/duplicate devices.
 - All credentials are stored in the HA config entry store (encrypted at rest by HA); they
   are never logged.
 - Activity data (check-ins, schedule) is from the standard Netpulse API. The schedule
