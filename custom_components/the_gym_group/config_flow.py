@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Mapping
 from typing import Any
 
@@ -51,6 +52,29 @@ _ADV_CONF_KEYS = frozenset({
     CONF_APPLICATION_VERSION,
     CONF_APPLICATION_VERSION_CODE,
 })
+
+class _InvalidHost(Exception):
+    """Raised when the configured host isn't an allowed Netpulse domain."""
+
+
+# Credentials are posted in plaintext to whatever host is configured, so a
+# bare hostname isn't enough - it must also live under the API provider's own
+# domain, otherwise the advanced override field could be used (accidentally
+# or otherwise) to send a plaintext username/password to an arbitrary host.
+_HOST_RE = re.compile(
+    r"^[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?"
+    r"(\.[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$"
+)
+_ALLOWED_HOST_DOMAIN = "netpulse.com"
+
+
+def _is_valid_host(host: str) -> bool:
+    """Return True if host is a bare hostname under the allowed domain."""
+    if not host or not _HOST_RE.match(host):
+        return False
+    host = host.lower()
+    return host == _ALLOWED_HOST_DOMAIN or host.endswith(f".{_ALLOWED_HOST_DOMAIN}")
+
 
 # Passed as description_placeholders to every form that shows advanced fields
 # so that data_description strings in translations can reference the current
@@ -145,9 +169,14 @@ async def _try_login(
     transport / app-identity fields are optional and fall back to defaults.
 
     Raises:
+        _InvalidHost: the configured host isn't an allowed Netpulse domain.
         InvalidAuth: credentials rejected.
         CannotConnect: transport / server error.
     """
+    host = user_input.get(CONF_HOST, DEFAULT_HOST)
+    if not _is_valid_host(host):
+        raise _InvalidHost(f"Host not allowed: {host}")
+
     client = TheGymGroupApiClient(
         user_input[CONF_USERNAME],
         user_input[CONF_PASSWORD],
@@ -191,6 +220,8 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             cleaned = _clean_advanced(user_input)
             try:
                 client = await _try_login(self.hass, cleaned)
+            except _InvalidHost:
+                errors["base"] = "invalid_host"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -231,6 +262,8 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             login_input = {**entry.data, CONF_PASSWORD: password}
             try:
                 await _try_login(self.hass, login_input)
+            except _InvalidHost:
+                errors["base"] = "invalid_host"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:
@@ -274,6 +307,8 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
             cleaned = _clean_advanced(user_input)
             try:
                 client = await _try_login(self.hass, cleaned)
+            except _InvalidHost:
+                errors["base"] = "invalid_host"
             except InvalidAuth:
                 errors["base"] = "invalid_auth"
             except CannotConnect:

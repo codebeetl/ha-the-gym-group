@@ -32,6 +32,7 @@
         "error": {
             "cannot_connect": "Failed to connect to The Gym Group API. Please check your network connection and try again.",
             "invalid_auth": "Invalid username or password. Please check your credentials and try again.",
+            "invalid_host": "Host must be a netpulse.com domain.",
             "unknown": "An unknown error occurred. Please check the logs."
         },
         "abort": {
@@ -66,6 +67,7 @@
         "error": {
             "cannot_connect": "Failed to connect to The Gym Group API.",
             "invalid_auth": "Invalid username or password.",
+            "invalid_host": "Host must be a netpulse.com domain.",
             "already_configured": "This account is already configured on another entry.",
             "unknown": "An unknown error occurred. Please check the logs."
         }

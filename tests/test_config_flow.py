@@ -277,6 +277,29 @@ async def test_options_flow_invalid_auth(hass: HomeAssistant) -> None:
     assert result2["errors"] == {"base": "invalid_auth"}
 
 
+async def test_options_flow_invalid_host_rejected(
+    hass: HomeAssistant, loaded_entry: MockConfigEntry
+) -> None:
+    """A host outside the netpulse.com domain is rejected without a login attempt."""
+    entry = loaded_entry
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    with patch(
+        "custom_components.the_gym_group.api.TheGymGroupApiClient.async_login",
+    ) as mock_login:
+        result2 = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                **MOCK_CONFIG,
+                CONF_HOST: "attacker.example.com",
+            },
+        )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "invalid_host"}
+    mock_login.assert_not_called()
+
+
 async def test_options_flow_duplicate_account_rejected(
     hass: HomeAssistant, loaded_entry: MockConfigEntry
 ) -> None:
