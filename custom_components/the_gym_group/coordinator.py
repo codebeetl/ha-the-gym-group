@@ -60,10 +60,13 @@ def _parse_checkin_dt(raw: dict[str, Any] | None) -> datetime | None:
     except (ZoneInfoNotFoundError, KeyError):
         tz = timezone.utc
     try:
-        return datetime.fromisoformat(date_str).replace(tzinfo=tz)
+        parsed = datetime.fromisoformat(date_str)
     except ValueError:
         _LOGGER.warning("Could not parse check-in date %r", date_str)
         return None
+    if parsed.tzinfo is None:
+        return parsed.replace(tzinfo=tz)
+    return parsed.astimezone(tz)
 
 
 def _find_next_class(schedule: list[dict[str, Any]]) -> dict[str, Any] | None:
