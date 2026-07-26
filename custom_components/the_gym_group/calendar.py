@@ -25,7 +25,9 @@ async def async_setup_entry(
     runtime_data = entry.runtime_data
     activity_coordinator = runtime_data.activity
     busyness_data = runtime_data.busyness.data or {}
-    device_id = str(busyness_data.get("gymLocationId") or entry.entry_id)
+    # Scoped by entry_id (not just gymLocationId) so two accounts sharing the
+    # same home gym don't collide on unique_id / device identifiers.
+    device_id = entry.entry_id
     gym_name = busyness_data.get("gymLocationName", "The Gym Group")
 
     async_add_entities(
