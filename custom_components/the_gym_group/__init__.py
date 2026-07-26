@@ -10,7 +10,7 @@ from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
 from homeassistant.core import HomeAssistant
 from homeassistant.exceptions import ConfigEntryError
 from homeassistant.helpers import device_registry as dr, entity_registry as er
-from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.helpers.aiohttp_client import async_create_clientsession
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -103,7 +103,11 @@ def _migrate_registry_ids(
 
 async def async_setup_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) -> bool:
     """Set up The Gym Group from a config entry."""
-    session = async_get_clientsession(hass)
+    # A dedicated session (not the shared HA default) so each account gets its
+    # own cookie jar - the API authenticates purely via session cookies, and
+    # sharing a jar across accounts would let one login overwrite another's.
+    # auto_cleanup=True registers the session to close on this entry's unload.
+    session = async_create_clientsession(hass)
 
     # Pull the configurable transport / app-identity values from the entry,
     # falling back to defaults so entries created before these fields existed

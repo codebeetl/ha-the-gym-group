@@ -38,6 +38,64 @@ async def test_setup_unload_and_reload_entry(
     assert not hasattr(entry, "runtime_data")
 
 
+async def test_setup_entry_gives_each_config_entry_an_isolated_session(
+    hass: HomeAssistant,
+) -> None:
+    """Two accounts must not share a cookie jar.
+
+    The API authenticates purely via session cookies, so if two config
+    entries shared Home Assistant's default ClientSession, logging in to
+    account B would overwrite account A's session cookie and A's next poll
+    would fetch B's data (or vice versa).
+    """
+    entry_a = MockConfigEntry(
+        domain=DOMAIN, data=MOCK_CONFIG, unique_id="user-a", version=2
+    )
+    entry_b = MockConfigEntry(
+        domain=DOMAIN,
+        data={**MOCK_CONFIG, "username": "other@email.com"},
+        unique_id="user-b",
+        version=2,
+    )
+    entry_a.add_to_hass(hass)
+    entry_b.add_to_hass(hass)
+
+    with (
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
+            return_value=MOCK_API_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_checkin_history",
+            return_value=MOCK_CHECKIN_HISTORY_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_schedule",
+            return_value=MOCK_SCHEDULE_DATA,
+        ),
+    ):
+        # Setting up the first entry of a domain bootstraps the whole
+        # component, which pulls in any other already-added entries of that
+        # domain too - so entry_b is set up as a side effect of this call.
+        await hass.config_entries.async_setup(entry_a.entry_id)
+        await hass.async_block_till_done()
+
+    assert entry_b.state is ConfigEntryState.LOADED
+
+    session_a = entry_a.runtime_data.busyness.api_client._session
+    session_b = entry_b.runtime_data.busyness.api_client._session
+
+    assert session_a is not session_b
+    assert session_a.cookie_jar is not session_b.cookie_jar
+
+    assert await hass.config_entries.async_unload(entry_a.entry_id)
+    assert await hass.config_entries.async_unload(entry_b.entry_id)
+    await hass.async_block_till_done()
+
+    assert session_a.closed
+    assert session_b.closed
+
+
 async def test_setup_entry_exception(hass: HomeAssistant) -> None:
     """Test ConfigEntryNotReady when API raises an exception during setup."""
     entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG)
