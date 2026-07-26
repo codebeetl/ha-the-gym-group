@@ -15,16 +15,10 @@ _LOGGER = logging.getLogger(__name__)
 
 from .api import TheGymGroupApiClient
 from .const import (
-    CONF_APPLICATION_NAME,
-    CONF_APPLICATION_VERSION,
-    CONF_APPLICATION_VERSION_CODE,
+    ADVANCED_FIELDS,
+    ADVANCED_FIELD_KEYS,
     CONF_HOST,
-    CONF_USER_AGENT,
-    DEFAULT_APPLICATION_NAME,
-    DEFAULT_APPLICATION_VERSION,
-    DEFAULT_APPLICATION_VERSION_CODE,
     DEFAULT_HOST,
-    DEFAULT_USER_AGENT,
     DOMAIN,
     PLATFORMS,
     is_valid_host,
@@ -54,16 +48,7 @@ async def async_migrate_entry(hass: HomeAssistant, config_entry: ConfigEntry) ->
     if config_entry.version == 1:
         _LOGGER.debug("Migrating %s config entry from version 1 to 2", DOMAIN)
         new_data = {
-            k: v
-            for k, v in config_entry.data.items()
-            if k
-            not in {
-                CONF_HOST,
-                CONF_USER_AGENT,
-                CONF_APPLICATION_NAME,
-                CONF_APPLICATION_VERSION,
-                CONF_APPLICATION_VERSION_CODE,
-            }
+            k: v for k, v in config_entry.data.items() if k not in ADVANCED_FIELD_KEYS
         }
         hass.config_entries.async_update_entry(
             config_entry, data=new_data, version=2
@@ -90,22 +75,17 @@ async def async_setup_entry(hass: HomeAssistant, entry: TheGymGroupConfigEntry) 
         # credentials must never be posted to an unvalidated host.
         raise ConfigEntryError(f"Configured host '{host}' is not an allowed domain")
 
+    # Field keys match TheGymGroupApiClient's keyword argument names exactly,
+    # so the five overrides can be forwarded as a single kwargs dict.
+    advanced_kwargs = {
+        field.key: entry.data.get(field.key, field.default) for field in ADVANCED_FIELDS
+    }
     api_client = TheGymGroupApiClient(
         entry.data[CONF_USERNAME],
         entry.data[CONF_PASSWORD],
         session,
         user_id=entry.unique_id or "",
-        host=host,
-        user_agent=entry.data.get(CONF_USER_AGENT, DEFAULT_USER_AGENT),
-        application_name=entry.data.get(
-            CONF_APPLICATION_NAME, DEFAULT_APPLICATION_NAME
-        ),
-        application_version=entry.data.get(
-            CONF_APPLICATION_VERSION, DEFAULT_APPLICATION_VERSION
-        ),
-        application_version_code=entry.data.get(
-            CONF_APPLICATION_VERSION_CODE, DEFAULT_APPLICATION_VERSION_CODE
-        ),
+        **advanced_kwargs,
     )
 
     coordinator = TheGymGroupDataUpdateCoordinator(

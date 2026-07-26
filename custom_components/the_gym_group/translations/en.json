@@ -33,6 +33,7 @@
             "cannot_connect": "Failed to connect to The Gym Group API. Please check your network connection and try again.",
             "invalid_auth": "Invalid username or password. Please check your credentials and try again.",
             "invalid_host": "Host must be a netpulse.com domain.",
+            "invalid_advanced_field": "Advanced field values must not contain control characters.",
             "unknown": "An unknown error occurred. Please check the logs."
         },
         "abort": {
@@ -68,6 +69,7 @@
             "cannot_connect": "Failed to connect to The Gym Group API.",
             "invalid_auth": "Invalid username or password.",
             "invalid_host": "Host must be a netpulse.com domain.",
+            "invalid_advanced_field": "Advanced field values must not contain control characters.",
             "already_configured": "This account is already configured on another entry.",
             "unknown": "An unknown error occurred. Please check the logs."
         }
