@@ -69,6 +69,18 @@ def _parse_checkin_dt(raw: dict[str, Any] | None) -> datetime | None:
     return parsed.astimezone(tz)
 
 
+def _add_duration(start_dt: datetime, duration_ms: int) -> datetime:
+    """Add a real-time elapsed duration to an aware datetime, DST-safe.
+
+    Adding a timedelta directly to a ZoneInfo-aware datetime does wall-clock
+    arithmetic, which is wrong for a real elapsed duration when a DST
+    transition falls inside the interval. Doing the addition in UTC and
+    converting back avoids that.
+    """
+    end_utc = start_dt.astimezone(timezone.utc) + timedelta(milliseconds=duration_ms)
+    return end_utc.astimezone(start_dt.tzinfo)
+
+
 def _find_next_class(schedule: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Return a dict of key attributes for the next non-cancelled booked class."""
     candidates: list[dict[str, Any]] = []
@@ -172,7 +184,7 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             dur_ms: int = ci.get("duration", 0)
             calendar_checkins.append({
                 "start": start_dt,
-                "end": start_dt + timedelta(milliseconds=dur_ms) if dur_ms else None,
+                "end": _add_duration(start_dt, dur_ms) if dur_ms else None,
                 "gym_name": ci.get("gymLocationName") or "The Gym Group",
             })
 
