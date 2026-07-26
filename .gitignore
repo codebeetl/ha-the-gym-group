@@ -25,6 +25,10 @@ build/
 dist/
 target/
 
+# Python virtual environments
+.venv/
+venv/
+
 # IDE and editor cache
 .vscode/
 .idea/
@@ -37,6 +41,7 @@ target/
 Thumbs.db
 
 # Archive files
+*.xapk
 *.zip
 *.tar.gz
 *.tar.bz2

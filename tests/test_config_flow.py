@@ -277,6 +277,42 @@ async def test_options_flow_invalid_auth(hass: HomeAssistant) -> None:
     assert result2["errors"] == {"base": "invalid_auth"}
 
 
+async def test_options_flow_duplicate_account_rejected(
+    hass: HomeAssistant, loaded_entry: MockConfigEntry
+) -> None:
+    """Switching to an account already configured on another entry is rejected."""
+    other_entry = MockConfigEntry(
+        domain=DOMAIN, data=MOCK_CONFIG, unique_id="other-user-id", version=2
+    )
+    other_entry.add_to_hass(hass)
+
+    entry = loaded_entry
+    result = await hass.config_entries.options.async_init(entry.entry_id)
+
+    with (
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_login",
+            return_value=True,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.user_id",
+            new_callable=lambda: "other-user-id",
+        ),
+    ):
+        result2 = await hass.config_entries.options.async_configure(
+            result["flow_id"],
+            user_input={
+                **MOCK_CONFIG,
+                CONF_USERNAME: "other@email.com",
+                CONF_PASSWORD: "other_password",
+            },
+        )
+
+    assert result2["type"] == FlowResultType.FORM
+    assert result2["errors"] == {"base": "already_configured"}
+    assert entry.data[CONF_USERNAME] != "other@email.com"
+
+
 async def test_migration_v1_to_v2(hass: HomeAssistant) -> None:
     """Advanced transport fields are stripped from v1 entries on upgrade."""
     old_data = {

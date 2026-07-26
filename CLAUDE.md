@@ -105,7 +105,7 @@ defect; the test itself PASSES.
 ## CI
 
 - **`.github/workflows/test.yml`** - runs `pytest tests/` on push/PR to main, on Python
-  3.12 and 3.13, installing from `requirements_test.txt`.
+  3.14, installing from `requirements_test.txt`.
 - **`.github/workflows/validate.yml`** - runs `hacs/action` (category `integration`) and
   `home-assistant/actions/hassfest` on push/PR to main, daily, and on manual dispatch.
 
