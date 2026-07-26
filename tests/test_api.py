@@ -103,3 +103,21 @@ async def test_get_busyness_raises_invalid_auth_if_still_rejected_after_relogin(
 
     assert session.post.call_count == 1
     assert session.get.call_count == 2
+
+
+async def test_transient_fetch_failure_does_not_log_at_error_level(caplog) -> None:
+    """A transient HTTP failure must not log at ERROR/WARNING - the coordinator
+
+    already logs once when the entity becomes unavailable and once on
+    recovery; duplicating that at ERROR level on every poll would spam logs.
+    """
+    session = MagicMock()
+    session.get = MagicMock(return_value=_mock_request(503, json_return=None))
+    client = TheGymGroupApiClient(
+        "user@example.com", "pw", session, user_id="existing-uid"
+    )
+
+    with pytest.raises(CannotConnect):
+        await client.async_get_busyness()
+
+    assert not [r for r in caplog.records if r.levelname in ("ERROR", "WARNING")]

@@ -114,22 +114,26 @@ class TheGymGroupApiClient:
                     )
                     raise InvalidAuth(f"Login rejected: {response.status}")
                 if response.status != 200:
-                    _LOGGER.error("Login failed with status code: %s", response.status)
+                    _LOGGER.debug("Login failed with status code: %s", response.status)
                     raise CannotConnect(f"Unexpected login status: {response.status}")
 
                 data: dict[str, Any] = await response.json()
                 user_id = str(data.get("uuid") or "")
                 if not user_id:
-                    _LOGGER.error("Login response missing user ID")
+                    _LOGGER.debug("Login response missing user ID")
                     raise CannotConnect("Login response missing user ID")
 
                 self._user_id = user_id
                 _LOGGER.debug("Login successful, session cookie stored")
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            _LOGGER.error("Error during login request: %s", err)
+            # Debug, not error/warning - these are transient connectivity
+            # failures raised as CannotConnect. DataUpdateCoordinator already
+            # logs once when the entity goes unavailable and once on
+            # recovery; logging here on every poll would duplicate that.
+            _LOGGER.debug("Error during login request: %s", err)
             raise CannotConnect(f"Login transport error: {err}") from err
         except ValueError as err:
-            _LOGGER.error("Login response was not valid JSON: %s", err)
+            _LOGGER.debug("Login response was not valid JSON: %s", err)
             raise CannotConnect(f"Invalid login response: {err}") from err
 
     async def _ensure_logged_in(self) -> None:
@@ -226,14 +230,16 @@ class TheGymGroupApiClient:
                 if response.status in (401, 403):
                     return None
                 if response.status != 200:
-                    _LOGGER.error(
+                    # Debug, not error - see the comment in async_login: the
+                    # coordinator already owns unavailable/recovery logging.
+                    _LOGGER.debug(
                         "Failed to fetch %s: HTTP %s", description, response.status
                     )
                     raise CannotConnect(f"HTTP {response.status}")
                 return await response.json()
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
-            _LOGGER.error("Error fetching %s: %s", description, err)
+            _LOGGER.debug("Error fetching %s: %s", description, err)
             raise CannotConnect(f"Transport error: {err}") from err
         except ValueError as err:
-            _LOGGER.error("Response for %s was not valid JSON: %s", description, err)
+            _LOGGER.debug("Response for %s was not valid JSON: %s", description, err)
             raise CannotConnect(f"Invalid response: {err}") from err
