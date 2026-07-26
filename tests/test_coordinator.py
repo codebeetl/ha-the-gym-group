@@ -3,7 +3,11 @@
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 
-from custom_components.the_gym_group.coordinator import _add_duration, _parse_checkin_dt
+from custom_components.the_gym_group.coordinator import (
+    _add_duration,
+    _find_next_class,
+    _parse_checkin_dt,
+)
 
 
 def test_parse_checkin_dt_attaches_tz_to_naive_timestamp() -> None:
@@ -30,3 +34,27 @@ def test_add_duration_uses_real_elapsed_time_across_dst_fallback() -> None:
     )
     # Naive wall-clock addition would have wrongly landed on 02:30 local.
     assert end_dt != start_dt + timedelta(hours=2)
+
+
+def test_find_next_class_excludes_already_started_classes() -> None:
+    """An in-progress class must not be reported as the next class."""
+    now = datetime(2025, 6, 1, 12, 0, tzinfo=timezone.utc)
+    in_progress = {
+        "brief": {
+            "name": "In Progress Class",
+            "startDateTime": int((now - timedelta(minutes=10)).timestamp() * 1000),
+            "endDateTime": int((now + timedelta(minutes=20)).timestamp() * 1000),
+            "cancelled": False,
+        }
+    }
+    upcoming = {
+        "brief": {
+            "name": "Upcoming Class",
+            "startDateTime": int((now + timedelta(hours=1)).timestamp() * 1000),
+            "endDateTime": int((now + timedelta(hours=2)).timestamp() * 1000),
+            "cancelled": False,
+        }
+    }
+    result = _find_next_class([in_progress, upcoming], now)
+    assert result is not None
+    assert result["name"] == "Upcoming Class"

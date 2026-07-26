@@ -81,8 +81,10 @@ def _add_duration(start_dt: datetime, duration_ms: int) -> datetime:
     return end_utc.astimezone(start_dt.tzinfo)
 
 
-def _find_next_class(schedule: list[dict[str, Any]]) -> dict[str, Any] | None:
-    """Return a dict of key attributes for the next non-cancelled booked class."""
+def _find_next_class(
+    schedule: list[dict[str, Any]], now: datetime
+) -> dict[str, Any] | None:
+    """Return a dict of key attributes for the next non-cancelled, not-yet-started class."""
     candidates: list[dict[str, Any]] = []
     for item in schedule:
         brief = item.get("brief", {})
@@ -90,10 +92,13 @@ def _find_next_class(schedule: list[dict[str, Any]]) -> dict[str, Any] | None:
             continue
         start_ms: int = brief.get("startDateTime", 0)
         end_ms: int = brief.get("endDateTime", 0)
+        start_dt = datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc)
+        if start_dt <= now:
+            continue
         instructor_info = brief.get("instructor") or {}
         candidates.append(
             {
-                "start_dt": datetime.fromtimestamp(start_ms / 1000, tz=timezone.utc),
+                "start_dt": start_dt,
                 "name": brief.get("name", ""),
                 "instructor": instructor_info.get("fullName", ""),
                 "available_spots": (
@@ -221,5 +226,5 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             "calendar_classes": calendar_classes,
             "monthly_visits": len(monthly),
             "monthly_hours": round(total_ms / 3_600_000, 1),
-            "next_class": _find_next_class(schedule_raw),
+            "next_class": _find_next_class(schedule_raw, now),
         }
