@@ -121,3 +121,37 @@ async def test_transient_fetch_failure_does_not_log_at_error_level(caplog) -> No
         await client.async_get_busyness()
 
     assert not [r for r in caplog.records if r.levelname in ("ERROR", "WARNING")]
+
+
+async def test_login_raises_cannot_connect_when_response_is_not_an_object() -> None:
+    """A 200 login response that's valid JSON but not an object must not crash."""
+    session = MagicMock()
+    session.post = MagicMock(return_value=_mock_request(200, json_return=["not", "a", "dict"]))
+    client = TheGymGroupApiClient("user@example.com", "pw", session)
+
+    with pytest.raises(CannotConnect):
+        await client.async_login()
+
+
+async def test_get_busyness_raises_cannot_connect_when_response_is_not_an_object() -> None:
+    """A 200 busyness response that's valid JSON but not an object must not crash."""
+    session = MagicMock()
+    session.get = MagicMock(return_value=_mock_request(200, json_return=["not", "a", "dict"]))
+    client = TheGymGroupApiClient(
+        "user@example.com", "pw", session, user_id="existing-uid"
+    )
+
+    with pytest.raises(CannotConnect):
+        await client.async_get_busyness()
+
+
+async def test_get_schedule_raises_cannot_connect_when_response_is_not_a_list() -> None:
+    """A 200 schedule response that's valid JSON but not a list must not crash."""
+    session = MagicMock()
+    session.get = MagicMock(return_value=_mock_request(200, json_return={"not": "a list"}))
+    client = TheGymGroupApiClient(
+        "user@example.com", "pw", session, user_id="existing-uid"
+    )
+
+    with pytest.raises(CannotConnect):
+        await client.async_get_schedule(0, 1)

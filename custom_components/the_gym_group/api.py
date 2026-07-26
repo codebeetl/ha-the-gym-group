@@ -5,7 +5,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from collections.abc import Callable
-from typing import Any, cast
+from typing import Any
 
 import aiohttp
 
@@ -117,7 +117,10 @@ class TheGymGroupApiClient:
                     _LOGGER.debug("Login failed with status code: %s", response.status)
                     raise CannotConnect(f"Unexpected login status: {response.status}")
 
-                data: dict[str, Any] = await response.json()
+                data = await response.json()
+                if not isinstance(data, dict):
+                    _LOGGER.debug("Login response was not a JSON object: %r", type(data))
+                    raise CannotConnect("Login response was not a JSON object")
                 user_id = str(data.get("uuid") or "")
                 if not user_id:
                     _LOGGER.debug("Login response missing user ID")
@@ -183,7 +186,9 @@ class TheGymGroupApiClient:
         data = await self._get_with_reauth(
             lambda: build_busyness_url(self._user_id, self._host), "gym busyness"
         )
-        return cast(dict[str, Any], data)
+        if not isinstance(data, dict):
+            raise CannotConnect("Unexpected response shape for gym busyness")
+        return data
 
     async def async_get_checkin_history(
         self, start_date: str, end_date: str
@@ -200,7 +205,9 @@ class TheGymGroupApiClient:
             ),
             "check-in history",
         )
-        return cast(dict[str, Any], data)
+        if not isinstance(data, dict):
+            raise CannotConnect("Unexpected response shape for check-in history")
+        return data
 
     async def async_get_schedule(
         self, start_ms: int, end_ms: int
@@ -215,7 +222,9 @@ class TheGymGroupApiClient:
             lambda: build_schedule_url(self._user_id, start_ms, end_ms, self._host),
             "schedule",
         )
-        return cast(list[dict[str, Any]], data)
+        if not isinstance(data, list):
+            raise CannotConnect("Unexpected response shape for schedule")
+        return data
 
     async def _do_get(self, url: str, description: str = "data") -> Any | None:
         """Perform a GET and return JSON, or None if auth was rejected.
