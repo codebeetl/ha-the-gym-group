@@ -4,14 +4,14 @@
     'activity_data': dict({
       'calendar_checkins': list([
         dict({
-          'end': datetime.datetime(2025, 4, 1, 10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
+          'end': datetime.datetime(2025, 4, 1, 11, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
           'gym_name': '**REDACTED**',
-          'start': datetime.datetime(2025, 4, 1, 9, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
+          'start': datetime.datetime(2025, 4, 1, 10, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
         }),
         dict({
-          'end': datetime.datetime(2025, 4, 3, 9, 30, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
+          'end': datetime.datetime(2025, 4, 3, 10, 30, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
           'gym_name': '**REDACTED**',
-          'start': datetime.datetime(2025, 4, 3, 8, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
+          'start': datetime.datetime(2025, 4, 3, 9, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
         }),
       ]),
       'calendar_classes': list([
@@ -24,7 +24,7 @@
       ]),
       'checkin_history': list([
       ]),
-      'latest_checkin': datetime.datetime(2025, 4, 3, 8, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
+      'latest_checkin': datetime.datetime(2025, 4, 3, 9, 0, tzinfo=zoneinfo.ZoneInfo(key='Europe/London')),
       'latest_checkin_duration_minutes': 90,
       'latest_checkin_gym': '**REDACTED**',
       'monthly_hours': 0.0,
