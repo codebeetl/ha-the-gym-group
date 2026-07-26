@@ -58,6 +58,40 @@ async def test_login_raises_cannot_connect_on_malformed_json() -> None:
         await client.async_login()
 
 
+async def test_login_does_not_follow_redirects() -> None:
+    """A malicious/compromised host could 307-redirect the login POST elsewhere.
+
+    Following the redirect would forward the plaintext credentials to
+    whatever host the response points at, so redirects must be disabled.
+    """
+    session = MagicMock()
+    session.post = MagicMock(
+        return_value=_mock_request(200, json_return={"uuid": "fresh-uuid"})
+    )
+    client = TheGymGroupApiClient("user@example.com", "pw", session)
+
+    await client.async_login()
+
+    _args, kwargs = session.post.call_args
+    assert kwargs["allow_redirects"] is False
+
+
+async def test_get_busyness_does_not_follow_redirects() -> None:
+    """A redirected GET could expose user-specific URL paths to another host."""
+    session = MagicMock()
+    session.get = MagicMock(
+        return_value=_mock_request(200, json_return={"currentCapacity": 12})
+    )
+    client = TheGymGroupApiClient(
+        "user@example.com", "pw", session, user_id="existing-uid"
+    )
+
+    await client.async_get_busyness()
+
+    _args, kwargs = session.get.call_args
+    assert kwargs["allow_redirects"] is False
+
+
 async def test_get_busyness_retries_login_once_on_auth_rejection() -> None:
     """A 401 on the first GET triggers exactly one re-login, then a retried GET."""
     session = MagicMock()

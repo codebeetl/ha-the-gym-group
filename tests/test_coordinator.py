@@ -12,11 +12,17 @@ from custom_components.the_gym_group.coordinator import (
 )
 
 
-def test_parse_checkin_dt_attaches_tz_to_naive_timestamp() -> None:
-    """A naive checkInDate gets the given timezone attached."""
-    raw = {"checkInDate": "2025-04-01T09:00:00", "timezone": "Europe/London"}
+def test_parse_checkin_dt_treats_naive_timestamp_as_utc() -> None:
+    """A naive checkInDate is the API's own UTC clock, not local wall time.
+
+    Attaching the check-in's ``timezone`` field directly to the naive string
+    (as if it were already local wall time) shifts the real instant by that
+    zone's UTC offset - during BST that reported every visit an hour early.
+    """
+    raw = {"checkInDate": "2025-07-01T09:00:00", "timezone": "Europe/London"}
     result = _parse_checkin_dt(raw)
-    assert result == datetime(2025, 4, 1, 9, 0, 0, tzinfo=ZoneInfo("Europe/London"))
+    assert result == datetime(2025, 7, 1, 9, 0, 0, tzinfo=timezone.utc)
+    assert result.utcoffset() == timedelta(hours=1)  # BST wall clock is 10:00
 
 
 def test_parse_checkin_dt_preserves_offset_aware_instant() -> None:
@@ -99,20 +105,20 @@ def test_parse_booked_class_normalizes_fields() -> None:
 def test_summarize_checkins_picks_latest_by_real_instant_not_lexical_string() -> None:
     """Mixed naive/offset-aware checkInDate strings must not be compared lexically.
 
-    "2025-07-01T09:00:00" (naive, Europe/London = 08:00 UTC in BST) sorts
-    lexically *after* "2025-07-01T08:30:00+00:00" (08:30 UTC) even though the
-    offset-aware one is 30 minutes later in real time.
+    "2025-07-01T10:00:00" (naive, treated as 10:00 UTC) sorts lexically
+    *before* "2025-07-01T14:00:00+05:00" (which is actually only 09:00 UTC)
+    even though the naive one is an hour later in real time.
     """
-    earlier_but_lexically_larger = {
-        "checkInDate": "2025-07-01T09:00:00",
-        "timezone": "Europe/London",
-        "gymLocationName": "Earlier Gym",
-        "duration": 1_800_000,
-    }
     later_but_lexically_smaller = {
-        "checkInDate": "2025-07-01T08:30:00+00:00",
+        "checkInDate": "2025-07-01T10:00:00",
         "timezone": "Europe/London",
         "gymLocationName": "Later Gym",
+        "duration": 1_800_000,
+    }
+    earlier_but_lexically_larger = {
+        "checkInDate": "2025-07-01T14:00:00+05:00",
+        "timezone": "Europe/London",
+        "gymLocationName": "Earlier Gym",
         "duration": 1_800_000,
     }
     now = datetime(2025, 7, 1, 12, 0, tzinfo=timezone.utc)

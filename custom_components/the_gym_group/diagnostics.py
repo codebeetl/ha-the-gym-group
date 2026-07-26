@@ -31,16 +31,32 @@ TO_REDACT = {
 # diagnostics would add no privacy and only cost snapshot fragility.
 TO_REDACT_ACTIVITY = {"gym_name", "latest_checkin_gym", "instructor"}
 
+# busyness_data is the raw API response, not a parsed/typed dict like
+# activity_data - allowlisted to exactly the fields sensor.py consumes, so an
+# unexpected/unvetted field the API starts returning (e.g. something
+# PII-shaped) isn't reported verbatim.
+BUSYNESS_FIELDS = {
+    "currentCapacity",
+    "currentPercentage",
+    "gymLocationId",
+    "gymLocationName",
+    "status",
+    "historical",
+}
+
 
 async def async_get_config_entry_diagnostics(
     hass: HomeAssistant, entry: TheGymGroupConfigEntry
 ) -> dict[str, Any]:
     """Return diagnostics for a config entry."""
     runtime_data = entry.runtime_data
+    busyness_data = runtime_data.busyness.data or {}
 
     return {
         "config_entry": async_redact_data(entry.as_dict(), TO_REDACT),
-        "busyness_data": runtime_data.busyness.data or {},
+        "busyness_data": {
+            k: v for k, v in busyness_data.items() if k in BUSYNESS_FIELDS
+        },
         "activity_data": async_redact_data(
             runtime_data.activity.data or {}, TO_REDACT_ACTIVITY
         ),

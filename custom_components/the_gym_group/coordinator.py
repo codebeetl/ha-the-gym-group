@@ -64,8 +64,11 @@ def _parse_checkin_dt(raw: dict[str, Any] | None) -> datetime | None:
     except ValueError:
         _LOGGER.warning("Could not parse check-in date %r", date_str)
         return None
+    # A naive checkInDate is the API's own UTC clock, not local wall time -
+    # attaching the gym's timezone directly here (instead of UTC first) would
+    # shift the real instant by that zone's UTC offset.
     if parsed.tzinfo is None:
-        return parsed.replace(tzinfo=tz)
+        parsed = parsed.replace(tzinfo=timezone.utc)
     return parsed.astimezone(tz)
 
 

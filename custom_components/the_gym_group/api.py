@@ -27,6 +27,11 @@ _LOGGER = logging.getLogger(__name__)
 _FORM_CONTENT_TYPE = "application/x-www-form-urlencoded"
 _REQUEST_TIMEOUT = aiohttp.ClientTimeout(total=30)
 
+# Every request disables aiohttp's default of following redirects: the real
+# Netpulse API never redirects, and a compromised/misconfigured host could
+# otherwise 307/308-redirect the login POST (forwarding credentials) or a GET
+# (exposing user-specific paths) to an arbitrary off-host destination.
+
 
 class TheGymGroupApiClientError(Exception):
     """Base exception for API client errors."""
@@ -107,6 +112,7 @@ class TheGymGroupApiClient:
                 data=creds,
                 headers=login_headers,
                 timeout=_REQUEST_TIMEOUT,
+                allow_redirects=False,
             ) as response:
                 if response.status in (401, 403):
                     _LOGGER.warning(
@@ -234,7 +240,10 @@ class TheGymGroupApiClient:
         """
         try:
             async with self._session.get(
-                url, headers=self._headers, timeout=_REQUEST_TIMEOUT
+                url,
+                headers=self._headers,
+                timeout=_REQUEST_TIMEOUT,
+                allow_redirects=False,
             ) as response:
                 if response.status in (401, 403):
                     return None
