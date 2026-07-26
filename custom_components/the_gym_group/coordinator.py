@@ -81,6 +81,64 @@ def _add_duration(start_dt: datetime, duration_ms: int) -> datetime:
     return end_utc.astimezone(start_dt.tzinfo)
 
 
+def _summarize_checkins(
+    check_ins: list[dict[str, Any]], now: datetime
+) -> dict[str, Any]:
+    """Derive all check-in-based stats from parsed real timestamps.
+
+    Each check-in is parsed once via ``_parse_checkin_dt`` and compared as an
+    aware datetime rather than a raw string - the API mixes naive and
+    offset-aware ``checkInDate`` formats, and lexical string comparison
+    doesn't order those consistently with real time.
+    """
+    month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+    recent_cutoff = now - timedelta(days=35)
+
+    parsed: list[tuple[dict[str, Any], datetime]] = []
+    for ci in check_ins:
+        start_dt = _parse_checkin_dt(ci)
+        if start_dt is not None:
+            parsed.append((ci, start_dt))
+
+    latest_raw = max(parsed, key=lambda pair: pair[1])[0] if parsed else None
+    monthly = [ci for ci, start_dt in parsed if start_dt >= month_start]
+    total_ms = sum(ci.get("duration", 0) for ci in monthly)
+
+    recent_checkins = [
+        {
+            "datetime": ci["checkInDate"],
+            "duration_minutes": (
+                round(ci["duration"] / 60_000) if ci.get("duration") else None
+            ),
+        }
+        for ci, start_dt in parsed
+        if start_dt >= recent_cutoff
+    ]
+
+    calendar_checkins = [
+        {
+            "start": start_dt,
+            "end": _add_duration(start_dt, ci["duration"]) if ci.get("duration") else None,
+            "gym_name": ci.get("gymLocationName") or "The Gym Group",
+        }
+        for ci, start_dt in parsed
+    ]
+
+    return {
+        "latest_checkin": _parse_checkin_dt(latest_raw),
+        "latest_checkin_gym": latest_raw.get("gymLocationName") if latest_raw else None,
+        "latest_checkin_duration_minutes": (
+            round(latest_raw.get("duration", 0) / 60_000)
+            if latest_raw and latest_raw.get("duration")
+            else None
+        ),
+        "checkin_history": recent_checkins,
+        "calendar_checkins": calendar_checkins,
+        "monthly_visits": len(monthly),
+        "monthly_hours": round(total_ms / 3_600_000, 1),
+    }
+
+
 def _find_next_class(
     schedule: list[dict[str, Any]], now: datetime
 ) -> dict[str, Any] | None:
@@ -137,7 +195,6 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
     async def _async_update_data(self) -> dict[str, Any]:
         """Fetch and aggregate activity data."""
         now = datetime.now(timezone.utc)
-        month_start = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
         history_start = now - timedelta(days=365)
         week_end = now + timedelta(days=7)
 
@@ -156,42 +213,7 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             raise UpdateFailed(f"Error communicating with API: {err}") from err
 
         check_ins: list[dict[str, Any]] = history_raw.get("checkIns", [])
-
-        # Most recent entry across the full history window.
-        latest_raw = (
-            max(check_ins, key=lambda ci: ci.get("checkInDate", ""))
-            if check_ins
-            else None
-        )
-
-        # Monthly stats: filter to the current calendar month.
-        month_start_str = month_start.strftime("%Y-%m-%dT%H:%M:%S")
-        monthly = [ci for ci in check_ins if ci.get("checkInDate", "") >= month_start_str]
-        total_ms = sum(ci.get("duration", 0) for ci in monthly)
-
-        # Last 35 days of check-ins for dashboard history markers.
-        recent_cutoff = (now - timedelta(days=35)).strftime("%Y-%m-%dT%H:%M:%S")
-        recent_checkins = [
-            {
-                "datetime": ci["checkInDate"],
-                "duration_minutes": round(ci["duration"] / 60_000) if ci.get("duration") else None,
-            }
-            for ci in check_ins
-            if ci.get("checkInDate", "") >= recent_cutoff
-        ]
-
-        # Full 365-day check-in history for the calendar entity.
-        calendar_checkins: list[dict[str, Any]] = []
-        for ci in check_ins:
-            start_dt = _parse_checkin_dt(ci)
-            if start_dt is None:
-                continue
-            dur_ms: int = ci.get("duration", 0)
-            calendar_checkins.append({
-                "start": start_dt,
-                "end": _add_duration(start_dt, dur_ms) if dur_ms else None,
-                "gym_name": ci.get("gymLocationName") or "The Gym Group",
-            })
+        checkin_summary = _summarize_checkins(check_ins, now)
 
         # All upcoming non-cancelled booked classes for the calendar entity.
         calendar_classes: list[dict[str, Any]] = []
@@ -212,19 +234,7 @@ class TheGymGroupActivityCoordinator(DataUpdateCoordinator[dict[str, Any]]):
             })
 
         return {
-            "latest_checkin": _parse_checkin_dt(latest_raw),
-            "latest_checkin_gym": (
-                latest_raw.get("gymLocationName") if latest_raw else None
-            ),
-            "latest_checkin_duration_minutes": (
-                round(latest_raw.get("duration", 0) / 60_000)
-                if latest_raw and latest_raw.get("duration")
-                else None
-            ),
-            "checkin_history": recent_checkins,
-            "calendar_checkins": calendar_checkins,
+            **checkin_summary,
             "calendar_classes": calendar_classes,
-            "monthly_visits": len(monthly),
-            "monthly_hours": round(total_ms / 3_600_000, 1),
             "next_class": _find_next_class(schedule_raw, now),
         }
