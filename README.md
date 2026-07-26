@@ -95,8 +95,8 @@ sensible defaults:
 | **API host** | `thegymgroup.netpulse.com` | The Netpulse host the requests go to. Drives the URL **and** the HTTP `Host` header. |
 | **User-Agent header** | `okhttp/4.12.0` | Sent as `User-Agent`. The official app uses the OkHttp default. |
 | **Application name** | `The Gym Group` | Embedded in the composite `x-np-user-agent` header. |
-| **Application version** | `7.4` | Sent as both `x-np-app-version` and the `applicationVersion=` segment of `x-np-user-agent`. |
-| **Application version code** | `114` | The numeric build code, embedded in `x-np-user-agent`. |
+| **Application version** | `7.7` | Sent as both `x-np-app-version` and the `applicationVersion=` segment of `x-np-user-agent`. |
+| **Application version code** | `121` | The numeric build code, embedded in `x-np-user-agent`. |
 
 Most users should leave these alone. If the integration starts failing all
 requests with 4xx after a Gym Group app update, install the latest official
