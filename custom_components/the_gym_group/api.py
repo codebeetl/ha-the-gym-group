@@ -127,6 +127,9 @@ class TheGymGroupApiClient:
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             _LOGGER.error("Error during login request: %s", err)
             raise CannotConnect(f"Login transport error: {err}") from err
+        except ValueError as err:
+            _LOGGER.error("Login response was not valid JSON: %s", err)
+            raise CannotConnect(f"Invalid login response: {err}") from err
 
     async def _ensure_logged_in(self) -> None:
         """Ensure the client has a user ID, logging in if necessary.
@@ -232,3 +235,6 @@ class TheGymGroupApiClient:
         except (aiohttp.ClientError, asyncio.TimeoutError) as err:
             _LOGGER.error("Error fetching %s: %s", description, err)
             raise CannotConnect(f"Transport error: {err}") from err
+        except ValueError as err:
+            _LOGGER.error("Response for %s was not valid JSON: %s", description, err)
+            raise CannotConnect(f"Invalid response: {err}") from err
