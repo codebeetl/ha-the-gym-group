@@ -27,24 +27,8 @@
                 "data": {
                     "password": "Password (PIN)"
                 }
-            }
-        },
-        "error": {
-            "cannot_connect": "Failed to connect to The Gym Group API. Please check your network connection and try again.",
-            "invalid_auth": "Invalid username or password. Please check your credentials and try again.",
-            "invalid_host": "Host must be a netpulse.com domain.",
-            "invalid_advanced_field": "Advanced field values must not contain control characters.",
-            "unknown": "An unknown error occurred. Please check the logs."
-        },
-        "abort": {
-            "already_configured": "This account is already configured.",
-            "reauth_successful": "Re-authentication was successful.",
-            "unknown": "An unexpected error occurred. Please remove and re-add the integration."
-        }
-    },
-    "options": {
-        "step": {
-            "init": {
+            },
+            "reconfigure": {
                 "title": "Update The Gym Group Configuration",
                 "description": "Update your stored credentials. Leave the advanced fields blank to use the integration's built-in defaults, which update automatically when a new version ships.",
                 "data": {
@@ -66,12 +50,18 @@
             }
         },
         "error": {
-            "cannot_connect": "Failed to connect to The Gym Group API.",
-            "invalid_auth": "Invalid username or password.",
+            "cannot_connect": "Failed to connect to The Gym Group API. Please check your network connection and try again.",
+            "invalid_auth": "Invalid username or password. Please check your credentials and try again.",
             "invalid_host": "Host must be a netpulse.com domain.",
             "invalid_advanced_field": "Advanced field values must not contain control characters.",
             "already_configured": "This account is already configured on another entry.",
             "unknown": "An unknown error occurred. Please check the logs."
+        },
+        "abort": {
+            "already_configured": "This account is already configured.",
+            "reauth_successful": "Re-authentication was successful.",
+            "reconfigure_successful": "Reconfiguration was successful.",
+            "unknown": "An unexpected error occurred. Please remove and re-add the integration."
         }
     },
     "device_automation": {

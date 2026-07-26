@@ -73,10 +73,10 @@ Everything is configured through the UI - there is **no YAML configuration**.
 
 ### Changing credentials later
 
-Open the integration in **Settings -> Devices & services**, click **Configure**,
-and re-enter the username and password. If the new credentials belong to a
-different Gym Group account, the integration will repoint the device at that
-account.
+Open the integration in **Settings -> Devices & services**, click the **...**
+menu on the entry and choose **Reconfigure**, then re-enter the username and
+password. If the new credentials belong to a different Gym Group account, the
+integration will repoint the device at that account.
 
 ### Advanced configuration
 
@@ -87,7 +87,7 @@ the API can start returning 401/403/4xx until the new version's headers are
 sent.
 
 To handle that without releasing a new build of the integration, the setup
-form (and the **Configure** options form) exposes the following fields with
+form (and the **Reconfigure** form) exposes the following fields with
 sensible defaults:
 
 | Field | Default | What it does |
@@ -101,7 +101,7 @@ sensible defaults:
 Most users should leave these alone. If the integration starts failing all
 requests with 4xx after a Gym Group app update, install the latest official
 Android app, look up its version (Play Store -> app -> "About") and version
-code, and update the two `Application version` fields via **Configure**. The
+code, and update the two `Application version` fields via **Reconfigure**. The
 integration will re-validate against the API as part of saving, so a typo
 that breaks login is caught immediately rather than at the next refresh.
 

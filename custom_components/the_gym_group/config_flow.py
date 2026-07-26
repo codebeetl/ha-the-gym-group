@@ -9,9 +9,9 @@ from typing import Any
 import voluptuous as vol
 
 from homeassistant import config_entries
-from homeassistant.config_entries import ConfigEntry, ConfigFlowResult
+from homeassistant.config_entries import ConfigFlowResult
 from homeassistant.const import CONF_PASSWORD, CONF_USERNAME
-from homeassistant.core import HomeAssistant, callback
+from homeassistant.core import HomeAssistant
 from homeassistant.helpers import selector
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 
@@ -141,14 +141,6 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
 
     VERSION = 2
 
-    @staticmethod
-    @callback
-    def async_get_options_flow(
-        config_entry: ConfigEntry,
-    ) -> TheGymGroupOptionsFlow:
-        """Get the options flow for this handler."""
-        return TheGymGroupOptionsFlow()
-
     async def async_step_user(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
@@ -232,19 +224,16 @@ class TheGymGroupConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
             errors=errors,
         )
 
-
-class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
-    """Options flow - allows changing stored credentials and transport fields."""
-
-    async def async_step_init(
+    async def async_step_reconfigure(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Manage the options.
+        """Handle reconfiguration: update credentials and transport fields.
 
         Re-validates credentials (which also exercises the advanced fields, so
         a bad host / user-agent is caught here rather than at the next refresh).
         """
         errors: dict[str, str] = {}
+        reconfigure_entry = self._get_reconfigure_entry()
 
         if user_input is not None:
             cleaned = _clean_advanced(user_input)
@@ -266,11 +255,11 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                 # unique_id in sync so HA can still detect duplicates - but
                 # first check no other entry already owns that account.
                 new_unique_id: str | None = None
-                if client.user_id and client.user_id != self.config_entry.unique_id:
+                if client.user_id and client.user_id != reconfigure_entry.unique_id:
                     existing = self.hass.config_entries.async_entry_for_domain_unique_id(
                         DOMAIN, client.user_id
                     )
-                    if existing is not None and existing.entry_id != self.config_entry.entry_id:
+                    if existing is not None and existing.entry_id != reconfigure_entry.entry_id:
                         errors["base"] = "already_configured"
                     else:
                         new_unique_id = client.user_id
@@ -281,7 +270,7 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                     # than leaving the old value from entry.data in place.
                     base = {
                         k: v
-                        for k, v in self.config_entry.data.items()
+                        for k, v in reconfigure_entry.data.items()
                         if k not in ADVANCED_FIELD_KEYS
                     }
                     new_data = {**base, **cleaned}
@@ -291,17 +280,17 @@ class TheGymGroupOptionsFlow(config_entries.OptionsFlow):
                         update_kwargs["unique_id"] = new_unique_id
 
                     self.hass.config_entries.async_update_entry(
-                        self.config_entry, **update_kwargs
+                        reconfigure_entry, **update_kwargs
                     )
                     # The update_listener in __init__.py will reload the entry.
-                    return self.async_create_entry(title="", data={})
+                    return self.async_abort(reason="reconfigure_successful")
 
         # Pre-fill from the current entry, with the in-flight user_input
         # taking precedence so users see what they just typed on validation
         # errors.
-        defaults = {**self.config_entry.data, **(user_input or {})}
+        defaults = {**reconfigure_entry.data, **(user_input or {})}
         return self.async_show_form(
-            step_id="init",
+            step_id="reconfigure",
             data_schema=_credentials_schema(defaults),
             description_placeholders=_ADV_DEFAULTS_PLACEHOLDERS,
             errors=errors,
