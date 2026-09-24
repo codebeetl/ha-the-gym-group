@@ -229,3 +229,58 @@ async def test_setup_migrates_registry_ids_from_gym_location_id_to_entry_id(
     assert migrated_device is not None
     assert (DOMAIN, entry.entry_id) in migrated_device.identifiers
     assert (DOMAIN, old_device_id) not in migrated_device.identifiers
+
+
+async def test_setup_migration_keeps_devices_scoped_per_entry_with_shared_gym(
+    hass: HomeAssistant,
+    device_registry: dr.DeviceRegistry,
+) -> None:
+    """Two accounts sharing a home gym each had a device keyed on the same
+
+    gymLocationId. Each entry must migrate only its own device, so every
+    device ends up keyed on the entry that owns it.
+    """
+    other_entry = MockConfigEntry(
+        domain=DOMAIN, data=MOCK_CONFIG, unique_id="other-user", version=2
+    )
+    other_entry.add_to_hass(hass)
+    other_device = device_registry.async_get_or_create(
+        config_entry_id=other_entry.entry_id,
+        identifiers={(DOMAIN, MOCK_GYM_ID)},
+    )
+
+    entry = MockConfigEntry(domain=DOMAIN, data=MOCK_CONFIG, version=2)
+    entry.add_to_hass(hass)
+    device = device_registry.async_get_or_create(
+        config_entry_id=entry.entry_id,
+        identifiers={(DOMAIN, MOCK_GYM_ID)},
+    )
+
+    with (
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_busyness",
+            return_value=MOCK_API_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_checkin_history",
+            return_value=MOCK_CHECKIN_HISTORY_DATA,
+        ),
+        patch(
+            "custom_components.the_gym_group.api.TheGymGroupApiClient.async_get_schedule",
+            return_value=MOCK_SCHEDULE_DATA,
+        ),
+    ):
+        await hass.config_entries.async_setup(entry.entry_id)
+        await hass.async_block_till_done()
+
+    # Setting up the integration sets up every entry for the domain.
+    assert entry.state is ConfigEntryState.LOADED
+    assert other_entry.state is ConfigEntryState.LOADED
+
+    migrated_device = device_registry.async_get(device.id)
+    assert migrated_device is not None
+    assert migrated_device.identifiers == {(DOMAIN, entry.entry_id)}
+
+    other_migrated_device = device_registry.async_get(other_device.id)
+    assert other_migrated_device is not None
+    assert other_migrated_device.identifiers == {(DOMAIN, other_entry.entry_id)}

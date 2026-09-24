@@ -76,7 +76,21 @@ def _migrate_registry_ids(
         return  # device_id was already entry-scoped - nothing to migrate
 
     device_registry = dr.async_get(hass)
-    old_device = device_registry.async_get_device(identifiers={(DOMAIN, old_device_id)})
+    # async_get_device is deprecated (breaks in HA 2027.8) and its replacement,
+    # async_get_device_by_identifier, only exists from HA 2026.8 - so look the
+    # device up among this entry's own devices, which works on every supported
+    # version and can't match another entry's device.
+    old_identifier = (DOMAIN, old_device_id)
+    old_device = next(
+        (
+            device
+            for device in dr.async_entries_for_config_entry(
+                device_registry, entry.entry_id
+            )
+            if old_identifier in device.identifiers
+        ),
+        None,
+    )
     if old_device is None:
         return  # already migrated, or a fresh install
 
