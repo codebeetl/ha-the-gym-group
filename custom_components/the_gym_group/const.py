@@ -33,8 +33,8 @@ CONF_APPLICATION_VERSION_CODE = "application_version_code"
 DEFAULT_HOST = "thegymgroup.netpulse.com"
 DEFAULT_USER_AGENT = "okhttp/4.12.0"
 DEFAULT_APPLICATION_NAME = "The Gym Group"
-DEFAULT_APPLICATION_VERSION = "7.7"
-DEFAULT_APPLICATION_VERSION_CODE = "121"
+DEFAULT_APPLICATION_VERSION = "7.8.1"
+DEFAULT_APPLICATION_VERSION_CODE = "125"
 
 # Credentials are posted in plaintext to whatever host is configured, so a
 # bare hostname isn't enough - it must also live under the API provider's own
