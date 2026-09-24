@@ -100,7 +100,7 @@ Tests use `pytest-homeassistant-custom-component` and mock the API client with
 - `tests/conftest.py`: `_enable_custom_integrations` autouse fixture clears HA's custom
   component scan cache so our integration is discoverable in each test. `loaded_entry`
   fixture mocks all four API calls and returns a fully set-up config entry.
-- `tests/__snapshots__/test_diagnostics.ambr`: syrupy snapshot for the diagnostics test.
+- `tests/snapshots/test_diagnostics.ambr`: syrupy snapshot for the diagnostics test.
   Regenerate with `--snapshot-update` if diagnostics output changes.
 
 ## CI

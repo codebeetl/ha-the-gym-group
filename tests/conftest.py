@@ -5,6 +5,8 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+from pytest_homeassistant_custom_component.syrupy import HomeAssistantSnapshotExtension
+from syrupy.assertion import SnapshotAssertion
 
 from homeassistant.core import HomeAssistant
 
@@ -26,6 +28,16 @@ from .const import (
     MOCK_SCHEDULE_DATA,
     MOCK_USER_ID,
 )
+
+
+# syrupy and phcc both register a plugin-level `snapshot` fixture, and which one
+# wins depends on plugin load order (which varies between environments). Defining
+# it here pins the Home Assistant extension, which stores snapshots in
+# `tests/snapshots/`.
+@pytest.fixture
+def snapshot(snapshot: SnapshotAssertion) -> SnapshotAssertion:
+    """Return a snapshot assertion using the Home Assistant extension."""
+    return snapshot.use_extension(HomeAssistantSnapshotExtension)
 
 
 @pytest.fixture
