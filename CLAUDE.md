@@ -103,10 +103,6 @@ Tests use `pytest-homeassistant-custom-component` and mock the API client with
 - `tests/__snapshots__/test_diagnostics.ambr`: syrupy snapshot for the diagnostics test.
   Regenerate with `--snapshot-update` if diagnostics output changes.
 
-The `test_full_user_flow_success` test always shows a teardown ERROR (lingering aiohttp
-`_run_safe_shutdown_loop` thread). This is a phcc/aiohttp version mismatch, not a code
-defect; the test itself PASSES.
-
 ## CI
 
 - **`.github/workflows/test.yml`** - runs `pytest tests/` on push/PR to main, on Python
