@@ -154,3 +154,44 @@ async def test_if_fires_on_status_change(
     hass.states.async_set(status_entity_id, "open")
     await hass.async_block_till_done()
     assert len(service_calls) == 1
+
+
+async def test_capacity_above_fires_on_first_crossing(
+    hass: HomeAssistant,
+    busyness_entity_id: str,
+    device_id: str,
+    service_calls: list[ServiceCall],
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    """Test the trigger is armed from the initial state and fires on first crossing.
+
+    The delegated numeric_state config must be validated (entity_id coerced to a
+    list); otherwise the entity_id string is iterated character by character and
+    the initial state is never evaluated.
+    """
+    hass.states.async_set(busyness_entity_id, "50")
+
+    assert await async_setup_component(
+        hass,
+        automation.DOMAIN,
+        {
+            automation.DOMAIN: [
+                {
+                    "trigger": {
+                        "platform": "device",
+                        "domain": DOMAIN,
+                        "device_id": device_id,
+                        "entity_id": busyness_entity_id,
+                        "type": "capacity_above",
+                        "above": 75,
+                    },
+                    "action": {"service": "test.automation"},
+                }
+            ]
+        },
+    )
+
+    hass.states.async_set(busyness_entity_id, "80")
+    await hass.async_block_till_done()
+    assert len(service_calls) == 1
+    assert "unknown entity" not in caplog.text

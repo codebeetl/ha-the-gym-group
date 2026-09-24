@@ -4,7 +4,7 @@
 
 This repository is a Home Assistant custom integration for The Gym Group. Runtime code lives in `custom_components/the_gym_group/`: `api.py` wraps the Netpulse API, `coordinator.py` refreshes data, and platform modules such as `sensor.py`, `calendar.py`, and `device_trigger.py` expose Home Assistant entities. Keep integration constants and URL builders in `const.py`; shared device metadata belongs in `entity.py`.
 
-Tests are in `tests/`, generally mirroring their target module (for example, `tests/test_api.py`). Diagnostics snapshots live in `tests/__snapshots__/`. User-facing translations are in `custom_components/the_gym_group/translations/`; branding assets and dashboard examples are under `brand/`, `branding/`, and `examples/`.
+Tests are in `tests/`, generally mirroring their target module (for example, `tests/test_api.py`). Diagnostics snapshots live in `tests/snapshots/`. User-facing translations are in `custom_components/the_gym_group/translations/`; branding assets and dashboard examples are under `brand/`, `branding/`, and `examples/`.
 
 ## Build, Test, and Development Commands
 

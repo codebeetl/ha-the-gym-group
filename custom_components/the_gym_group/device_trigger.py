@@ -117,6 +117,11 @@ async def async_attach_trigger(
             CONF_ENTITY_ID: entity_id,
             threshold_key: config[threshold_key],
         }
+        # Validate through the platform's own schema, as HA core device triggers
+        # do: it coerces entity_id to a list, which numeric_state relies on.
+        numeric_config = await numeric_state.async_validate_trigger_config(
+            hass, numeric_config
+        )
         return await numeric_state.async_attach_trigger(
             hass, numeric_config, action, trigger_info, platform_type="device"
         )
@@ -128,6 +133,7 @@ async def async_attach_trigger(
         CONF_ENTITY_ID: entity_id,
         "to": target_state,
     }
+    state_config = await state.async_validate_trigger_config(hass, state_config)
     return await state.async_attach_trigger(
         hass, state_config, action, trigger_info, platform_type="device"
     )
