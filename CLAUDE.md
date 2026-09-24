@@ -109,6 +109,14 @@ Tests use `pytest-homeassistant-custom-component` and mock the API client with
   3.14, installing from `requirements_test.txt`.
 - **`.github/workflows/validate.yml`** - runs `hacs/action` (category `integration`) and
   `home-assistant/actions/hassfest` on push/PR to main, daily, and on manual dispatch.
+- **`.github/workflows/release.yml`** - on push to main that changes `manifest.json` (or a
+  release-notes file), publishes GitHub Release `vX.Y.Z` for the manifest version if it
+  doesn't exist yet; also runnable manually. Notes come from
+  `.github/release-notes/vX.Y.Z.md` if present, else GitHub's auto-generated notes.
+
+**Releasing:** bump `version` in `manifest.json` (optionally adding
+`.github/release-notes/vX.Y.Z.md` in the same PR) and merge - the workflow tags and
+publishes the release, which is what HACS offers users as an update.
 
 ## Key constraints
 

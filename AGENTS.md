@@ -38,6 +38,8 @@ Keep the minimum Home Assistant version aligned with `hacs.json` (currently 2026
 
 GitHub Actions runs tests on Python 3.14 for pushes and pull requests to `main`. A separate workflow runs HACS validation and Hassfest on the same events, daily, and manually. Before submitting integration metadata, translations, or brand-asset changes, ensure they remain compatible with both validators.
 
+Releases are automated: merging a `version` bump in `custom_components/the_gym_group/manifest.json` to `main` makes `.github/workflows/release.yml` publish the matching `vX.Y.Z` GitHub Release. Put hand-written notes in `.github/release-notes/vX.Y.Z.md` in the same PR; without that file, GitHub's auto-generated notes are used.
+
 ## Commit & Pull Request Guidelines
 
 Use concise Conventional Commit-style subjects seen in history, such as `fix: validate response shape`, `test: add calendar coverage`, or `docs: update setup guidance`. Keep each commit focused. Pull requests should explain the behavioral change, note test coverage, link relevant issues, and include screenshots for UI, entity, or dashboard-visible changes. Never commit account credentials, PINs, API cookies, or unredacted diagnostics.

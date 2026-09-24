@@ -1,0 +1,66 @@
+name: Release
+
+# Publishes a GitHub Release (and its vX.Y.Z tag) whenever the version in
+# manifest.json changes on main. HACS offers updates from GitHub Releases, so
+# bumping the manifest version is all a release needs.
+#
+# Release notes come from .github/release-notes/vX.Y.Z.md when that file exists;
+# otherwise GitHub's auto-generated notes (merged PRs since the last release)
+# are used. Re-running is safe: an existing release is left untouched.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - custom_components/the_gym_group/manifest.json
+      - .github/release-notes/**
+      - .github/workflows/release.yml
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    name: Publish release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Read manifest version
+        id: version
+        run: |
+          version="$(jq -r '.version' custom_components/the_gym_group/manifest.json)"
+          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error file=custom_components/the_gym_group/manifest.json::version '$version' is not X.Y.Z"
+            exit 1
+          fi
+          echo "tag=v$version" >> "$GITHUB_OUTPUT"
+
+      - name: Publish release if missing
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.version.outputs.tag }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            echo "Release $TAG already exists - nothing to do."
+            exit 0
+          fi
+
+          notes_file=".github/release-notes/$TAG.md"
+          if [[ -f "$notes_file" ]]; then
+            notes_args=(--notes-file "$notes_file")
+          else
+            notes_args=(--generate-notes)
+          fi
+
+          gh release create "$TAG" \
+            --target "$GITHUB_SHA" \
+            --title "$TAG" \
+            "${notes_args[@]}"
+          echo "Published release $TAG."
