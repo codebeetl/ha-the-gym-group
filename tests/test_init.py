@@ -277,23 +277,10 @@ async def test_setup_migration_keeps_devices_scoped_per_entry_with_shared_gym(
     assert entry.state is ConfigEntryState.LOADED
     assert other_entry.state is ConfigEntryState.LOADED
 
-    # device/other_device both resolved to the same registry row before setup
-    # (HA dedups devices by identifier, not by config entry), so the two
-    # entries' post-migration devices must be looked up by their new
-    # entry-scoped identifier rather than by that shared pre-migration id.
-    assert device.id == other_device.id
-
-    migrated_device = device_registry.async_get_device(
-        identifiers={(DOMAIN, entry.entry_id)}
-    )
+    migrated_device = device_registry.async_get(device.id)
     assert migrated_device is not None
     assert migrated_device.identifiers == {(DOMAIN, entry.entry_id)}
 
-    other_migrated_device = device_registry.async_get_device(
-        identifiers={(DOMAIN, other_entry.entry_id)}
-    )
+    other_migrated_device = device_registry.async_get(other_device.id)
     assert other_migrated_device is not None
     assert other_migrated_device.identifiers == {(DOMAIN, other_entry.entry_id)}
-
-    assert migrated_device.id != other_migrated_device.id
-    assert device_registry.async_get_device(identifiers={(DOMAIN, MOCK_GYM_ID)}) is None

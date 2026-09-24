@@ -96,42 +96,19 @@ def _migrate_registry_ids(
 
     entity_registry = er.async_get(hass)
     prefix = f"{old_device_id}_"
-    new_identifier = (DOMAIN, entry.entry_id)
-
-    # Two accounts sharing a gym both got their device merged onto the same
-    # gymLocationId-keyed device pre-migration (device identity is dedup'd by
-    # identifier, not by config entry). Renaming that device in place would
-    # steal it out from under the other entry, which hasn't migrated yet -
-    # give this entry a fresh device instead and only detach it from the
-    # shared one. When the device isn't shared, keep renaming it in place so
-    # a single-account install keeps its existing device_id/history.
-    other_entries = old_device.config_entries - {entry.entry_id}
-    if other_entries:
-        target_device = device_registry.async_get_or_create(
-            config_entry_id=entry.entry_id, identifiers={new_identifier}
-        )
-        device_registry.async_update_device(
-            old_device.id, remove_config_entry_id=entry.entry_id
-        )
-    else:
-        target_device = device_registry.async_update_device(
-            old_device.id, new_identifiers={new_identifier}
-        )
-
     for reg_entry in er.async_entries_for_device(
         entity_registry, old_device.id, include_disabled_entities=True
     ):
-        if reg_entry.config_entry_id != entry.entry_id:
-            continue  # belongs to another entry sharing the old device
         if not reg_entry.unique_id.startswith(prefix):
             continue
         suffix = reg_entry.unique_id[len(prefix) :]
         entity_registry.async_update_entity(
-            reg_entry.entity_id,
-            new_unique_id=f"{entry.entry_id}_{suffix}",
-            device_id=target_device.id,
+            reg_entry.entity_id, new_unique_id=f"{entry.entry_id}_{suffix}"
         )
 
+    device_registry.async_update_device(
+        old_device.id, new_identifiers={(DOMAIN, entry.entry_id)}
+    )
     _LOGGER.info(
         "Migrated %s device/entities from gymLocationId-based IDs to entry-scoped IDs",
         DOMAIN,
